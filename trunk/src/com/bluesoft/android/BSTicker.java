@@ -22,7 +22,6 @@ public class BSTicker extends Activity
 	private Timer mTimer = new Timer();
 	private TimerTask mTimerTask;
 	private int mCounter = 0;
-	private TickPlayer tp;
 	final Handler mHandler = new Handler();
 	private int mSoundId;
 	private SoundPool mSoundPool;
@@ -35,7 +34,6 @@ public class BSTicker extends Activity
 	boolean mRunning = false;
 	Button mStartStopButton;
 	SeekBar mSeekBar;
-	//TickPlayer tp;
 	TextView tempoVal;
 	Button mPlus;
 	Button mMinus;
@@ -56,23 +54,32 @@ public class BSTicker extends Activity
 		mPlus.setClickable(mTempo < maxTempo);
 	}
 	
+	@Override
 	protected void onStop()
 	{
-		//Log.v("Metronome", "onStop");
 		super.onStop();
-		/*
+
+		// stop metronome if it is running
 		if (mRunning) {
 			changeState();
 		}
-		*/
+
 		SharedPreferences settings = getSharedPreferences(PREFS, 0);
 		SharedPreferences.Editor editor = settings.edit();
 		editor.putInt(KEY_TEMPO, mTempo);
 		editor.commit();
 	}
 
+	@Override
+	public void onPause()
+	{
+		super.onPause();
+
+		// stop metronome if it is running
+		if (mRunning)
+			changeState();	
+	}
 	
-	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
@@ -80,11 +87,11 @@ public class BSTicker extends Activity
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 
+		// bind volume keys to MUSIC stream (which is used for metronome ticks)
+		setVolumeControlStream(AudioManager.STREAM_MUSIC);
+
 		PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
 		mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MetronomeLock");
-
-		//tp = new TickPlayer(this);
-		tp = new TickPlayer(this);
 
 		mStartStopButton = (Button)findViewById(R.id.startstop);
 	       
@@ -185,7 +192,6 @@ public class BSTicker extends Activity
 		{
 			mWakeLock.acquire();
 			mStartStopButton.setText(R.string.stop);
-			//tp = new TickPlayer(this);
 			mTimerTask = new TimerTask() {
 				public void run() {
 					mHandler.post(new Runnable() {
@@ -216,7 +222,8 @@ public class BSTicker extends Activity
 		}
 	}
     
-	protected void onDestroy()
+	@Override
+	public void onDestroy()
 	{
 		if (mRunning)
 		{
