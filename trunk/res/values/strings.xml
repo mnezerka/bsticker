@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hello">BSTicker</string>
+    <string name="app_name">BSTicker</string>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
+</resources>
