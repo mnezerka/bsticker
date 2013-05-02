@@ -13,24 +13,27 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.LinearLayout;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.media.SoundPool.OnLoadCompleteListener;
 
 public class BSTicker extends Activity
 {
+	private static final int maxTempo = 200;
+	private static final String KEY_TEMPO = "METRONOME_TEMPO";
+	private static final String PREFS = "bsticker.prefs";
+	private static final int DEFAULT_TEMPO = 75;
+	
 	private Timer mTimer = new Timer();
 	private TimerTask mTimerTask;
 	private int mCounter = 0;
-	final Handler mHandler = new Handler();
+	private final Handler mHandler = new Handler();
 	private int mSoundId;
 	private SoundPool mSoundPool;
 	boolean mSoundLoaded = false;
 	float mVolume;
-
-	//private SoundPool soundPool;
-	//private int soundId;
-
+	private Song mSong = new Song();
 	boolean mRunning = false;
 	Button mStartStopButton;
 	SeekBar mSeekBar;
@@ -39,47 +42,38 @@ public class BSTicker extends Activity
 	Button mMinus;
 	PowerManager.WakeLock mWakeLock;
 	
-	private static final int DEFAULT_TEMPO = 75;
 	private int mTempo = DEFAULT_TEMPO;
-	private static final int maxTempo = 200;
-	private static final String KEY_TEMPO = "METRONOME_TEMPO";
-	
-	private static final String PREFS = "bsticker.prefs";
-	
+
+	private void updateSongGui()
+	{
+		LinearLayout ll = (LinearLayout)findViewById(R.id.songlayout);
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+
+		for (int ptnIx = 0; ptnIx < mSong.getSize(); ptnIx = ptnIx + 1)
+		{
+			TextView ptnLabel = new TextView(this);
+			ptnLabel.setText("Ptn" + ptnIx);
+			ll.addView(ptnLabel, lp);
+
+			Pattern ptn = mSong.getPattern(ptnIx);
+			for (int beatIx = 0; beatIx < ptn.getSize(); beatIx = beatIx + 1)
+			{
+				Button myButton = new Button(this);
+				myButton.setText("B" + beatIx);
+				ll.addView(myButton, lp);
+			}
+		}
+	}
+
 	private void restart()
 	{
 		mSeekBar.setProgress(mTempo);
 		tempoVal.setText("" + mTempo);
 		mMinus.setClickable(mTempo > 0);
 		mPlus.setClickable(mTempo < maxTempo);
-	}
-	
-	@Override
-	protected void onStop()
-	{
-		super.onStop();
 
-		// stop metronome if it is running
-		if (mRunning) {
-			changeState();
-		}
-
-		SharedPreferences settings = getSharedPreferences(PREFS, 0);
-		SharedPreferences.Editor editor = settings.edit();
-		editor.putInt(KEY_TEMPO, mTempo);
-		editor.commit();
 	}
 
-	@Override
-	public void onPause()
-	{
-		super.onPause();
-
-		// stop metronome if it is running
-		if (mRunning)
-			changeState();	
-	}
-	
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
@@ -181,9 +175,38 @@ public class BSTicker extends Activity
 		float maxVolume = (float) audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
 		mVolume = actualVolume / maxVolume;
 
+		updateSongGui();
     
 		restart();
 	}
+
+	
+	@Override
+	protected void onStop()
+	{
+		super.onStop();
+
+		// stop metronome if it is running
+		if (mRunning) {
+			changeState();
+		}
+
+		SharedPreferences settings = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = settings.edit();
+		editor.putInt(KEY_TEMPO, mTempo);
+		editor.commit();
+	}
+
+	@Override
+	public void onPause()
+	{
+		super.onPause();
+
+		// stop metronome if it is running
+		if (mRunning)
+			changeState();	
+	}
+	
     
 	private void changeState()
 	{
