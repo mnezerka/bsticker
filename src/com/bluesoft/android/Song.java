@@ -31,4 +31,13 @@ public class Song
 		mPatterns.add(p);
 		return p;
 	}
+
+	int getResolution()
+	{
+		int result = 1; 
+		for (int i = 0; i < mPatterns.size(); i = i + 1)
+			if (mPatterns.get(i).getResolution() > result)
+				result = mPatterns.get(i).getResolution();
+		return result;
+	}
 }
