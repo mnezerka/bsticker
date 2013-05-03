@@ -2,6 +2,7 @@ package com.bluesoft.android;
 
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.ArrayList;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -23,7 +24,7 @@ public class BSTicker extends Activity
 	private static final int maxTempo = 200;
 	private static final String KEY_TEMPO = "METRONOME_TEMPO";
 	private static final String PREFS = "bsticker.prefs";
-	private static final int DEFAULT_TEMPO = 75;
+	private static final int DEFAULT_TEMPO = 60;
 	
 	private Timer mTimer = new Timer();
 	private TimerTask mTimerTask;
@@ -41,6 +42,7 @@ public class BSTicker extends Activity
 	Button mPlus;
 	Button mMinus;
 	PowerManager.WakeLock mWakeLock;
+	ArrayList<PatternView> patternViews;
 	
 	private int mTempo = DEFAULT_TEMPO;
 
@@ -51,18 +53,29 @@ public class BSTicker extends Activity
 
 		for (int ptnIx = 0; ptnIx < mSong.getSize(); ptnIx = ptnIx + 1)
 		{
+			Pattern ptn = mSong.getPattern(ptnIx);
+
+			PatternView pv = new PatternView(this, ptn);
+			ll.addView(pv, lp);
+
+			patternViews.add(pv);
+
+			/*
 			TextView ptnLabel = new TextView(this);
 			ptnLabel.setText("Ptn" + ptnIx);
 			ll.addView(ptnLabel, lp);
 
-			Pattern ptn = mSong.getPattern(ptnIx);
 			for (int beatIx = 0; beatIx < ptn.getSize(); beatIx = beatIx + 1)
 			{
 				Button myButton = new Button(this);
 				myButton.setText("B" + beatIx);
 				ll.addView(myButton, lp);
 			}
+			*/
 		}
+
+		//PatternView pv = new PatternView(this, 4);
+		//ll.addView(pv, lp);
 	}
 
 	private void restart()
@@ -175,11 +188,26 @@ public class BSTicker extends Activity
 		float maxVolume = (float) audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
 		mVolume = actualVolume / maxVolume;
 
+		patternViews = new ArrayList<PatternView>();
+
+
 		updateSongGui();
     
 		restart();
 	}
 
+	@Override
+	public void onDestroy()
+	{
+		if (mRunning)
+			changeState();
+
+		// release sound pool resources
+		mSoundPool.release();
+		mSoundPool = null;
+	    
+		super.onDestroy();
+	}
 	
 	@Override
 	protected void onStop()
@@ -187,9 +215,8 @@ public class BSTicker extends Activity
 		super.onStop();
 
 		// stop metronome if it is running
-		if (mRunning) {
+		if (mRunning)
 			changeState();
-		}
 
 		SharedPreferences settings = getSharedPreferences(PREFS, 0);
 		SharedPreferences.Editor editor = settings.edit();
@@ -211,6 +238,7 @@ public class BSTicker extends Activity
 	private void changeState()
 	{
 		mRunning = !mRunning;
+
 		if (mRunning)
 		{
 			mWakeLock.acquire();
@@ -220,13 +248,21 @@ public class BSTicker extends Activity
 					mHandler.post(new Runnable() {
 						public void run() {
 							mCounter++;
-							tempoVal.setText("Timer: " + mCounter);
-							playSound();
+				
 						}
 					});
 				}
 			};
-			mTimer.schedule(mTimerTask, 0, 1000);
+
+			int res = mSong.getResolution();
+
+			// min lenghth interval in sec = (60s * 4) / (BPM * RES) 
+			// 60s is used because BPM is related to minute
+			// multiplication by 4 is used because of BPM is related to lenght of quoter note
+			int tickInterval = 240000 / (res * mTempo);
+			Log.e("Run", "res is " + res + ", tickInterval is " + tickInterval + ", mTempo is " + mTempo);
+
+			mTimer.schedule(mTimerTask, 0, tickInterval);
 
 		} else {
 			mWakeLock.release();
@@ -240,23 +276,12 @@ public class BSTicker extends Activity
  		// Is the sound loaded already?
 		if (mSoundLoaded)
 		{
+			tempoVal.setText("Timer: " + mCounter);
 			mSoundPool.play(mSoundId, mVolume, mVolume, 1, 0, 1f);
 			Log.e("Test", "Played sound");
 		}
+		
+		// colorize beat 
 	}
     
-	@Override
-	public void onDestroy()
-	{
-		if (mRunning)
-		{
-			changeState();
-		}
-
-		// release sound pool resources
-		mSoundPool.release();
-		mSoundPool = null;
-	    
-		super.onDestroy();
-	}
 }
