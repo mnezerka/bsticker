@@ -9,43 +9,108 @@ import android.view.*;
 
 class PatternView extends View
 {
-	private Pattern mPattern;
-        private RectF mBounds;
-	private float mTextHeight = 0.0f;
-	private int mTextColor = 0xff000000;
-	private Paint mTextPaint;
-	private Paint mStrokePaint;
-	private Paint mFillPaint;
+	public static final int MAX_SIZE = 64;
+	public static final int DEFAULT_SIZE = 4;
+	public static final int DEFAULT_RESOLUTION = 4;
 
-	public PatternView(Context context, Pattern pattern)
+	private String mName = new String("Ptn");
+	private int mSize = DEFAULT_SIZE;
+	private int mResolution = DEFAULT_RESOLUTION;
+	private int mPos = -1;
+	private boolean[] mBeats = new boolean[MAX_SIZE];
+	private RectF mBounds;
+	private Paint mStrokePaint;
+	private Paint mBeatPaint;
+	private Paint mBeatActivePaint;
+	private Paint mTickPaint;
+
+	public PatternView(Context context)
 	{
 		super(context);
 
-		mPattern = pattern;
+		setSize(DEFAULT_SIZE);
+		for (int i = 0; i < MAX_SIZE; i = i + 1)
+			mBeats[i] = false;
 
 		init();
 	}
 
+	public int getSize()
+	{
+		return mSize; 
+	}
+
+	public void setSize(int size)
+	{
+		mSize = Math.min(MAX_SIZE, size);
+	}
+
+	public boolean getBeat(int pos)
+	{
+		pos = Math.min(MAX_SIZE, pos);
+		return mBeats[pos];
+	}
+
+	public void setBeat(int pos, boolean value)
+	{
+		pos = Math.min(MAX_SIZE, pos);
+		mBeats[pos] = value;
+	}
+
+	public String getName()
+	{
+		return mName;
+	}
+
+	public void setName(String name)
+	{
+		mName = name;
+	}
+
+	public int getResolution()
+	{
+		return mResolution;
+	}
+
+	public void setResolution(int resolution)
+	{
+		mResolution = resolution;
+	}
+
+	public void setPos(int pos)
+	{
+		// do nothing if new pos is our of range or same as current value
+		if (pos >= mSize || pos == mPos)
+			return;
+		 
+		mPos = pos; 
+
+		invalidate();
+	}
+
+	public int getPos()
+	{
+		return mPos;
+	}
+
 	private void init()
 	{
-		mTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-		mTextPaint.setColor(mTextColor);
-		if (mTextHeight == 0)
-		{
-			mTextHeight = mTextPaint.getTextSize();
-		} else {
-			mTextPaint.setTextSize(mTextHeight);
-		}
-
 		mStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		mStrokePaint.setStyle(Paint.Style.STROKE);
 		mStrokePaint.setColor(Color.WHITE);
 		mStrokePaint.setStrokeWidth(1);
 		
-		mFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-		mFillPaint.setStyle(Paint.Style.FILL);
-		mFillPaint.setColor(Color.GRAY);
+		mBeatPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+		mBeatPaint.setStyle(Paint.Style.FILL);
+		mBeatPaint.setColor(Color.GRAY);
 
+		mBeatActivePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+		mBeatActivePaint.setStyle(Paint.Style.FILL);
+		mBeatActivePaint.setColor(Color.GREEN);
+
+		mTickPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+		mTickPaint.setStyle(Paint.Style.STROKE);
+		mTickPaint.setColor(Color.WHITE);
 
 		/*
 		mPiePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -72,27 +137,31 @@ class PatternView extends View
 	{
 		super.onDraw(canvas);
 
-		Log.i("PatternView", "onDraw");
-		Log.i("PatternView", mBounds.toString());
-
-		float beatWidth = mBounds.width() / mPattern.getSize();
+		float beatWidth = mBounds.width() / getSize();
 		RectF beatRect = new RectF(1, 1, beatWidth - 2, mBounds.height() - 2); 
 
-		for (int beatIx = 0; beatIx < mPattern.getSize(); beatIx = beatIx + 1)
+		for (int beatIx = 0; beatIx < getSize(); beatIx = beatIx + 1)
 		{
-			canvas.drawRect(beatRect, mFillPaint);
+			Paint beatPaint = mBeats[beatIx] ? mBeatActivePaint : mBeatPaint;
+
+			canvas.drawRect(beatRect, beatPaint);
+
+			// draw tick position
+			if (beatIx == mPos)
+			{
+				//canvas.drawLine(beatRect.left, beatRect.top, beatRect.right, beatRect.bottom, mTickPaint);
+				//canvas.drawLine(beatRect.right, beatRect.top, beatRect.left, beatRect.bottom, mTickPaint);
+				canvas.drawRect(beatRect, mTickPaint);
+			}
 			beatRect.offset(beatWidth, 0);
-			Log.e("onDraw beat", beatRect.toString());
 		}
 	}
 
 	@Override
-        protected void onSizeChanged(int w, int h, int oldw, int oldh)
+	protected void onSizeChanged(int w, int h, int oldw, int oldh)
 	{
 		mBounds = new RectF(0, 0, w, h);
-		Log.e("PatternView", "onSizeChanged");
-		Log.e("PatternView", mBounds.toString());
-        }
+	}
 
 	@Override
 	protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec)
@@ -100,7 +169,7 @@ class PatternView extends View
 		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
 		int parentWidth = MeasureSpec.getSize(widthMeasureSpec);
-		this.setMeasuredDimension(parentWidth, 20);
+		this.setMeasuredDimension(parentWidth, 40);
 	}
 }
 
