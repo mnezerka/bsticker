@@ -25,16 +25,20 @@ public class BSTicker extends Activity
 	private static final String KEY_TEMPO = "METRONOME_TEMPO";
 	private static final String PREFS = "bsticker.prefs";
 	private static final int DEFAULT_TEMPO = 60;
-	
+	public static final int MAX_PATTERNS = 10;
+
+	private ArrayList<PatternView> mPatterns = new ArrayList<PatternView>();
 	private Timer mTimer = new Timer();
 	private TimerTask mTimerTask;
-	private int mCounter = 0;
+	private int mCurrentPos = 0;
+	private int mCurrentPattern = 0;
+	private int mCurrentRes = 0;
 	private final Handler mHandler = new Handler();
 	private int mSoundId;
 	private SoundPool mSoundPool;
 	boolean mSoundLoaded = false;
 	float mVolume;
-	private Song mSong = new Song();
+	//private Song mSong = new Song();
 	boolean mRunning = false;
 	Button mStartStopButton;
 	SeekBar mSeekBar;
@@ -45,38 +49,6 @@ public class BSTicker extends Activity
 	ArrayList<PatternView> patternViews;
 	
 	private int mTempo = DEFAULT_TEMPO;
-
-	private void updateSongGui()
-	{
-		LinearLayout ll = (LinearLayout)findViewById(R.id.songlayout);
-		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-
-		for (int ptnIx = 0; ptnIx < mSong.getSize(); ptnIx = ptnIx + 1)
-		{
-			Pattern ptn = mSong.getPattern(ptnIx);
-
-			PatternView pv = new PatternView(this, ptn);
-			ll.addView(pv, lp);
-
-			patternViews.add(pv);
-
-			/*
-			TextView ptnLabel = new TextView(this);
-			ptnLabel.setText("Ptn" + ptnIx);
-			ll.addView(ptnLabel, lp);
-
-			for (int beatIx = 0; beatIx < ptn.getSize(); beatIx = beatIx + 1)
-			{
-				Button myButton = new Button(this);
-				myButton.setText("B" + beatIx);
-				ll.addView(myButton, lp);
-			}
-			*/
-		}
-
-		//PatternView pv = new PatternView(this, 4);
-		//ll.addView(pv, lp);
-	}
 
 	private void restart()
 	{
@@ -173,13 +145,13 @@ public class BSTicker extends Activity
 
 		mSoundPool = new SoundPool(10, AudioManager.STREAM_MUSIC, 0);
 		mSoundPool.setOnLoadCompleteListener(new OnLoadCompleteListener()
-		{
-			@Override
-			public void onLoadComplete(SoundPool soundPool, int sampleId, int status)
 			{
-				mSoundLoaded = true;
-			}
-		});
+				@Override
+				public void onLoadComplete(SoundPool soundPool, int sampleId, int status)
+				{
+					mSoundLoaded = true;
+				}
+			});
 		mSoundId = mSoundPool.load(this, R.raw.tick, 1);	
 
 		// Getting the user sound settings
@@ -188,11 +160,20 @@ public class BSTicker extends Activity
 		float maxVolume = (float) audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
 		mVolume = actualVolume / maxVolume;
 
-		patternViews = new ArrayList<PatternView>();
+		PatternView p1 = new PatternView(this);
+		p1.setResolution(8);
+		p1.setBeat(0, true);
+		p1.setBeat(2, true);
+		addPattern(p1);
+		PatternView p2 = new PatternView(this);
+		p2.setResolution(12);
+		p2.setSize(12);
+		p2.setBeat(0, true);
+		p2.setBeat(2, true);
+		p2.setBeat(4, true);
+		p2.setBeat(6, true);
+		addPattern(p2);
 
-
-		updateSongGui();
-    
 		restart();
 	}
 
@@ -243,24 +224,31 @@ public class BSTicker extends Activity
 		{
 			mWakeLock.acquire();
 			mStartStopButton.setText(R.string.stop);
+
+			mCurrentPattern = 0;
+			mCurrentPos = 0;
+			mCurrentRes = getResolution();
+
+			// set position on first beat of first pattern
+			PatternView pv = mPatterns.get(mCurrentPattern);
+			pv.setPos(0);	
+
 			mTimerTask = new TimerTask() {
 				public void run() {
 					mHandler.post(new Runnable() {
 						public void run() {
-							mCounter++;
-				
+							playSound();
 						}
 					});
 				}
 			};
 
-			int res = mSong.getResolution();
 
 			// min lenghth interval in sec = (60s * 4) / (BPM * RES) 
 			// 60s is used because BPM is related to minute
 			// multiplication by 4 is used because of BPM is related to lenght of quoter note
-			int tickInterval = 240000 / (res * mTempo);
-			Log.e("Run", "res is " + res + ", tickInterval is " + tickInterval + ", mTempo is " + mTempo);
+			int tickInterval = 240000 / (mCurrentRes * mTempo);
+			Log.e("BSTicker", "current res:" + mCurrentRes + ", tickInterval is " + tickInterval + ", mTempo is " + mTempo);
 
 			mTimer.schedule(mTimerTask, 0, tickInterval);
 
@@ -274,14 +262,66 @@ public class BSTicker extends Activity
 	public void playSound()
 	{
  		// Is the sound loaded already?
-		if (mSoundLoaded)
+		if (!mSoundLoaded)
+			return;
+
+		// get current pattern - pattern that is played
+		PatternView pv = mPatterns.get(mCurrentPattern);
+		//int pos = pv.getPos();
+
+		int ticksPerPatternPos = mCurrentRes / pv.getResolution();
+		int patternPos = mCurrentPos / ticksPerPatternPos;
+		boolean onBeat = (mCurrentPos % ticksPerPatternPos) == 0;
+
+		Log.i("BSTicker", "cPos:" + mCurrentPos + " cPtn:" + mCurrentPattern + " cRes:" + mCurrentRes + ", pv.res:" + pv.getResolution() + " onbeat:" + onBeat);
+
+		// if previous pattern is different than current
+		int prevPatternIx = mCurrentPattern > 0 ? mCurrentPattern - 1 : mPatterns.size() - 1; 
+		Log.i("BSTicker", "current pattern ix:" + mCurrentPattern + " prev pattern ix:" + prevPatternIx);
+		if (prevPatternIx != mCurrentPattern)
 		{
-			tempoVal.setText("Timer: " + mCounter);
-			mSoundPool.play(mSoundId, mVolume, mVolume, 1, 0, 1f);
-			Log.e("Test", "Played sound");
+			// if position in previous pattern is valid (>= 0) 
+			if (mPatterns.get(prevPatternIx).getPos() >= 0)
+				mPatterns.get(prevPatternIx).setPos(-1);
 		}
-		
-		// colorize beat 
+		pv.setPos(patternPos);
+
+		if (onBeat)
+		{
+			int posPattern = mCurrentRes / pv.getResolution() * pv.getPos(); 
+			tempoVal.setText("Pos:" + mCurrentPos);
+			if (pv.getBeat(pv.getPos()))
+				mSoundPool.play(mSoundId, mVolume, mVolume, 1, 0, 1f);
+		}
+
+		mCurrentPos++;
+
+		// if last tick of pattern has been handled (played)
+		if (mCurrentPos >= ticksPerPatternPos * pv.getSize())
+		{
+			mCurrentPattern++;
+			if (mCurrentPattern >= mPatterns.size())
+				mCurrentPattern = 0;
+			mCurrentPos = 0;
+		}
 	}
-    
+
+	public void addPattern(PatternView pv)
+
+	{
+		mPatterns.add(pv);
+
+		LinearLayout ll = (LinearLayout)findViewById(R.id.songlayout);
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+		ll.addView(pv, lp);
+	}
+
+	int getResolution()
+	{
+		int result = 0; 
+		for (int i = 0; i < mPatterns.size(); i++)
+			if (mPatterns.get(i).getResolution() > result)
+				result = mPatterns.get(i).getResolution();
+		return result;
+	}
 }
