@@ -12,17 +12,24 @@ class PatternView extends View
 	public static final int MAX_SIZE = 64;
 	public static final int DEFAULT_SIZE = 4;
 	public static final int DEFAULT_RESOLUTION = 4;
+	public static final int DEFAULT_TEMPO = 60;
 
 	private String mName = new String("Ptn");
 	private int mSize = DEFAULT_SIZE;
+	private float mTotalSize = 1;
 	private int mResolution = DEFAULT_RESOLUTION;
 	private int mPos = -1;
+	private int mTimePos = 0;
 	private boolean[] mBeats = new boolean[MAX_SIZE];
 	private RectF mBounds;
 	private Paint mStrokePaint;
 	private Paint mBeatPaint;
 	private Paint mBeatActivePaint;
 	private Paint mTickPaint;
+
+	private int mTempo = DEFAULT_TEMPO;
+	private int mTimeBeat = 240000 / (mResolution * mTempo);
+	private int mTimeTotal = mSize * mTimeBeat;
 
 	public PatternView(Context context)
 	{
@@ -37,12 +44,17 @@ class PatternView extends View
 
 	public int getSize()
 	{
-		return mSize; 
+		return mSize;
 	}
 
 	public void setSize(int size)
 	{
 		mSize = Math.min(MAX_SIZE, size);
+	}
+
+	public void setTotalSize(float size)
+	{
+		mTotalSize = size;
 	}
 
 	public boolean getBeat(int pos)
@@ -77,6 +89,11 @@ class PatternView extends View
 		mResolution = resolution;
 	}
 
+	public void setTempo(int tempo)
+	{
+		mTempo = tempo;
+	}
+
 	public void setPos(int pos)
 	{
 		// do nothing if new pos is our of range or same as current value
@@ -91,6 +108,16 @@ class PatternView extends View
 	public int getPos()
 	{
 		return mPos;
+	}
+
+	public int getTimeLength(int tempo)
+	{
+		return getTimeBeat(tempo) * mSize; 
+	}
+
+	public int getTimeBeat(int tempo)
+	{
+		return 240000 / (mResolution * tempo);
 	}
 
 	private void init()
@@ -137,7 +164,7 @@ class PatternView extends View
 	{
 		super.onDraw(canvas);
 
-		float beatWidth = mBounds.width() / getSize();
+		float beatWidth = mBounds.width() * (mTotalSize / mResolution);
 		RectF beatRect = new RectF(1, 1, beatWidth - 2, mBounds.height() - 2); 
 
 		for (int beatIx = 0; beatIx < getSize(); beatIx = beatIx + 1)

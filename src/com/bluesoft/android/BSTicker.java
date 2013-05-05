@@ -26,15 +26,18 @@ public class BSTicker extends Activity
 	private static final String PREFS = "bsticker.prefs";
 	private static final int DEFAULT_TEMPO = 60;
 	public static final int MAX_PATTERNS = 10;
+	private static final int TIME_ATOM = 50;
 
 	private ArrayList<PatternView> mPatterns = new ArrayList<PatternView>();
 	private Timer mTimer = new Timer();
-	private TimerTask mTimerTask;
 	private int mCurrentPos = 0;
 	private int mCurrentPattern = 0;
 	private int mCurrentRes = 0;
+	private int mTotalLength = 0;
 	private final Handler mHandler = new Handler();
 	private int mSoundId;
+	private int mTick;
+	private TimerThread mTimerThread;
 	private SoundPool mSoundPool;
 	boolean mSoundLoaded = false;
 	float mVolume;
@@ -143,7 +146,7 @@ public class BSTicker extends Activity
 			}
 		});
 
-		mSoundPool = new SoundPool(10, AudioManager.STREAM_MUSIC, 0);
+		mSoundPool = new SoundPool(3, AudioManager.STREAM_MUSIC, 0);
 		mSoundPool.setOnLoadCompleteListener(new OnLoadCompleteListener()
 			{
 				@Override
@@ -162,17 +165,34 @@ public class BSTicker extends Activity
 
 		PatternView p1 = new PatternView(this);
 		p1.setResolution(8);
+		p1.setSize(8);
 		p1.setBeat(0, true);
 		p1.setBeat(2, true);
+		p1.setBeat(4, true);
+		p1.setBeat(6, true);
 		addPattern(p1);
+
 		PatternView p2 = new PatternView(this);
-		p2.setResolution(12);
-		p2.setSize(12);
 		p2.setBeat(0, true);
 		p2.setBeat(2, true);
-		p2.setBeat(4, true);
-		p2.setBeat(6, true);
 		addPattern(p2);
+
+		PatternView p3 = new PatternView(this);
+		p3.setResolution(3);
+		p3.setSize(3);
+		p3.setBeat(0, true);
+		addPattern(p3);
+
+		PatternView p4 = new PatternView(this);
+		p4.setResolution(12);
+		p4.setSize(9);
+		p4.setBeat(0, true);
+		p4.setBeat(2, true);
+		p4.setBeat(3, true);
+		p4.setBeat(5, true);
+		p4.setBeat(6, true);
+		p4.setBeat(8, true);
+		addPattern(p4);
 
 		restart();
 	}
@@ -214,7 +234,57 @@ public class BSTicker extends Activity
 		if (mRunning)
 			changeState();	
 	}
+
+	class TimerThread extends Thread
+	{
+		private boolean running = false;
+		private BSTicker mTicker;
+
+		@Override public void run()
+		{
+			while(running)
+			{
+				Log.d("BSTicker", "Tick");
+
+				PatternView pv = mPatterns.get(mCurrentPattern);
+
+
+
+				// cancel current timer if current pattern is at the end (last tick of pattern has been handled (played)
+				if (mCurrentPos >= pv.getSize())
+				{
+					// go to next pattern
+					mCurrentPattern++;
+					if (mCurrentPattern >= mPatterns.size())
+						mCurrentPattern = 0;
+					pv = mPatterns.get(mCurrentPattern);
+
+					// start from zero position of new pattern
+					mCurrentPos = 0;
+				}
+
+				Log.d("BSTicker", "Do something cPos" + mCurrentPos);
+				mHandler.post(new Runnable() {
+					public void run() {
+						updateOnBeat();
+					}
+				});
+
 	
+				// wait for one beat 
+				int sleepLen = pv.getTimeBeat(mTempo);
+				try { sleep(sleepLen); } catch (InterruptedException e) { e.printStackTrace(); }
+
+				mCurrentPos++;
+
+			}
+		}
+
+		void setRunning(boolean b)
+		{
+			running = b;
+		}
+	}
     
 	private void changeState()
 	{
@@ -227,93 +297,83 @@ public class BSTicker extends Activity
 
 			mCurrentPattern = 0;
 			mCurrentPos = 0;
-			mCurrentRes = getResolution();
+			//mTick = 0;
+			//mCurrentRes = getResolution();
 
 			// set position on first beat of first pattern
 			PatternView pv = mPatterns.get(mCurrentPattern);
 			pv.setPos(0);	
 
-			mTimerTask = new TimerTask() {
-				public void run() {
-					mHandler.post(new Runnable() {
-						public void run() {
-							playSound();
-						}
-					});
-				}
-			};
-
-
 			// min lenghth interval in sec = (60s * 4) / (BPM * RES) 
 			// 60s is used because BPM is related to minute
 			// multiplication by 4 is used because of BPM is related to lenght of quoter note
-			int tickInterval = 240000 / (mCurrentRes * mTempo);
-			Log.e("BSTicker", "current res:" + mCurrentRes + ", tickInterval is " + tickInterval + ", mTempo is " + mTempo);
+			//int tickInterval = 240000 / (mCurrentRes * mTempo);
+			//Log.e("BSTicker", "current res:" + mCurrentRes + ", tickInterval is " + tickInterval + ", mTempo is " + mTempo);
+			//int tickInterval = 240000 / (pv.getResolution() * mTempo);
+			//Log.d("BSTicker", "Starting timer: tLen:" + mTotalLength + " tickInterval:" + tickInterval + " ticks:" + pv.getSize() + " mTempo:" + mTempo);
 
-			mTimer.schedule(mTimerTask, 0, tickInterval);
+			mTimerThread = new TimerThread();
+			mTimerThread.setRunning(true);
+			mTimerThread.start();
+
+			//mTimerTask = new TickTimerTask();
+			//mTimer.scheduleAtFixedRate(mTimerTask, 0, TIME_ATOM);
 
 		} else {
 			mWakeLock.release();
-			mTimerTask.cancel();
+			//mTimerTask.cancel();
+			mTimerThread.setRunning(false);
+			mTimerThread = null;
 			mStartStopButton.setText(R.string.start);
 		}
 	}
 
-	public void playSound()
+	public void updateOnBeat()
 	{
- 		// Is the sound loaded already?
-		if (!mSoundLoaded)
-			return;
-
 		// get current pattern - pattern that is played
 		PatternView pv = mPatterns.get(mCurrentPattern);
-		//int pos = pv.getPos();
 
-		int ticksPerPatternPos = mCurrentRes / pv.getResolution();
-		int patternPos = mCurrentPos / ticksPerPatternPos;
-		boolean onBeat = (mCurrentPos % ticksPerPatternPos) == 0;
-
-		Log.i("BSTicker", "cPos:" + mCurrentPos + " cPtn:" + mCurrentPattern + " cRes:" + mCurrentRes + ", pv.res:" + pv.getResolution() + " onbeat:" + onBeat);
+		// Play current beat (with check if sounds are loaded already)
+		if (pv.getBeat(mCurrentPos) && mSoundLoaded)
+		{
+			Log.d("BSTicker", "Play beat: cPos:" + mCurrentPos);
+			mSoundPool.play(mSoundId, mVolume, mVolume, 1, 0, 1f);
+		}
 
 		// if previous pattern is different than current
 		int prevPatternIx = mCurrentPattern > 0 ? mCurrentPattern - 1 : mPatterns.size() - 1; 
-		Log.i("BSTicker", "current pattern ix:" + mCurrentPattern + " prev pattern ix:" + prevPatternIx);
+		//Log.i("BSTicker", "current pattern ix:" + mCurrentPattern + " prev pattern ix:" + prevPatternIx);
 		if (prevPatternIx != mCurrentPattern)
 		{
 			// if position in previous pattern is valid (>= 0) 
 			if (mPatterns.get(prevPatternIx).getPos() >= 0)
 				mPatterns.get(prevPatternIx).setPos(-1);
 		}
-		pv.setPos(patternPos);
-
-		if (onBeat)
-		{
-			int posPattern = mCurrentRes / pv.getResolution() * pv.getPos(); 
-			tempoVal.setText("Pos:" + mCurrentPos);
-			if (pv.getBeat(pv.getPos()))
-				mSoundPool.play(mSoundId, mVolume, mVolume, 1, 0, 1f);
-		}
-
-		mCurrentPos++;
-
-		// if last tick of pattern has been handled (played)
-		if (mCurrentPos >= ticksPerPatternPos * pv.getSize())
-		{
-			mCurrentPattern++;
-			if (mCurrentPattern >= mPatterns.size())
-				mCurrentPattern = 0;
-			mCurrentPos = 0;
-		}
+		pv.setPos(mCurrentPos);
+		tempoVal.setText("Pos:" + mCurrentPos);
 	}
 
 	public void addPattern(PatternView pv)
-
 	{
 		mPatterns.add(pv);
 
 		LinearLayout ll = (LinearLayout)findViewById(R.id.songlayout);
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
 		ll.addView(pv, lp);
+
+		// recalculate size of all patterns
+		float totalSize = 0;
+		for (int i = 0; i < mPatterns.size(); i++)
+		{
+			float patternSize = mPatterns.get(i).getSize() / mPatterns.get(i).getResolution();
+
+			if (patternSize > totalSize)
+				totalSize = patternSize;
+		}
+
+		// set total size for all patterns
+		for (int i = 0; i < mPatterns.size(); i++)
+			mPatterns.get(i).setTotalSize(totalSize);	
 	}
 
 	int getResolution()
