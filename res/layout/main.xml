@@ -2,56 +2,70 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
 	android:orientation="vertical"
 	android:layout_width="fill_parent"
-	android:layout_height="fill_parent">
+	android:layout_height="fill_parent"
+	android:paddingLeft="4dp"
+	android:paddingRight="4dp"
+	android:paddingTop="4dp"
+	android:paddingBottom="4dp"
+	>
 
 	<LinearLayout
 		android:id="@+id/songlayout"
 		android:layout_height="wrap_content"
 		android:layout_width="fill_parent"
-		android:paddingTop="20sp"
-		android:paddingBottom="20sp"
-		android:orientation="vertical" />
+		android:paddingTop="20dp"
+		android:paddingBottom="20dp"
+		android:orientation="vertical"
+		android:gravity="fill_vertical"
+		android:layout_weight="1" />
 
-	<TableLayout
+
+
+	<TextView
+		android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
-		android:layout_width="fill_parent">
-		<TableRow>
-			<Button
-				android:id="@+id/minus"
-				android:text="-"
-				android:layout_weight="2"
-				android:textSize="50sp" />
-			<LinearLayout
-				android:layout_weight="1"
-				android:layout_width="fill_parent"
-				android:orientation="vertical">
-				<TextView
-					android:layout_width="fill_parent"
-					android:layout_height="wrap_content"
-					android:gravity="left"
-					android:id="@+id/period"
-					android:text="text" />
-				<TextView
-					android:gravity="center_horizontal"
-					android:id="@+id/text"
-					android:layout_height="wrap_content"
-					android:layout_width="fill_parent"
-					android:textSize="50sp"
-					android:typeface="monospace"
-					android:text="   " />
-			</LinearLayout>
-			<Button
-				android:id="@+id/plus"
-				android:text="+"
-				android:layout_weight="2"
-				android:textSize="50sp" />
-		</TableRow>
-	</TableLayout>
-	
+		android:gravity="bottom"
+		android:layout_weight="0"
+		android:text="Tempo" />
+
+
+	<LinearLayout
+		android:layout_weight="0"
+		android:layout_height="wrap_content"
+		android:layout_width="fill_parent"
+		android:gravity="bottom"
+		android:orientation="horizontal">
+		<Button
+			android:id="@+id/minus"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="-"
+			android:layout_weight="0"
+			android:textSize="25sp" />
+		<TextView
+			android:gravity="center_horizontal"
+			android:id="@+id/tempoval"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:textSize="25sp"
+			android:layout_weight="2"
+			android:typeface="monospace"
+			android:text="   " />
+		<Button
+			android:id="@+id/plus"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="+"
+			android:layout_weight="0"
+			android:textSize="25sp" />
+	</LinearLayout>
+
 	<SeekBar
 		android:layout_width="fill_parent"
-		android:paddingTop="20sp"
-		android:paddingBottom="20sp"
+		android:gravity="bottom"
+		android:paddingTop="10dp"
+		android:layout_weight="0"
+		android:paddingBottom="10dp"
 		android:layout_height="wrap_content"
 		android:id="@+id/tempo" />
 
@@ -59,7 +73,8 @@
 		android:gravity="bottom"
 		android:layout_width="fill_parent"
 		android:layout_height="wrap_content" android:text="@string/start"
-		android:layout_weight="1"
+		android:layout_weight="0"
 		android:textSize="25sp"
 		android:id="@+id/startstop" />
+
 </LinearLayout>
