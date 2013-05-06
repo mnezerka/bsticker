@@ -3,6 +3,7 @@ package com.bluesoft.android;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.ArrayList;
+import java.util.Date;
 import java.io.InputStream;
 import java.io.IOException;
 import android.app.Activity;
@@ -15,10 +16,16 @@ import android.os.Bundle;
 import android.os.PowerManager;
 import android.util.Log;
 import android.view.View;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.ContextMenu;
+import android.view.ContextMenu.ContextMenuInfo;
 import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.LinearLayout;
+import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.AudioFormat;
@@ -47,7 +54,6 @@ public class BSTicker extends Activity
 	private int mAudioTickBufferSize = 0;
 	private AssetManager mAssetManager;
 	float mVolume;
-	//private Song mSong = new Song();
 	boolean mRunning = false;
 	Button mStartStopButton;
 	SeekBar mSeekBar;
@@ -65,13 +71,11 @@ public class BSTicker extends Activity
 		tempoVal.setText("" + mTempo);
 		mMinus.setClickable(mTempo > 0);
 		mPlus.setClickable(mTempo < maxTempo);
-
 	}
 
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
-		//Log.v("Metronome", "onCreate");
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 
@@ -85,7 +89,7 @@ public class BSTicker extends Activity
 	       
 		mSeekBar = (SeekBar) findViewById(R.id.tempo);
 		mSeekBar.setMax(maxTempo + 1);
-		tempoVal = (TextView) findViewById(R.id.text);
+		tempoVal = (TextView) findViewById(R.id.tempoval);
 		mMinus = (Button) findViewById(R.id.minus);
 		mPlus = (Button) findViewById(R.id.plus);
 		//mPeriodLabel = (TextView) findViewById(R.id.period);
@@ -143,7 +147,8 @@ public class BSTicker extends Activity
 				}
         			
 		});
-        
+
+    
 		mStartStopButton.setOnClickListener(new View.OnClickListener()
 		{
 			public void onClick(View view)
@@ -194,14 +199,6 @@ public class BSTicker extends Activity
 		float maxVolume = (float) audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
 		mVolume = actualVolume / maxVolume;
 
-/*
-		PatternView p1 = new PatternView(this);
-		p1.setResolution(2);
-		p1.setSize(2);
-		p1.setBeat(1, true);
-		addPattern(p1);
-*/
-
 		PatternView p1 = new PatternView(this);
 		p1.setResolution(8);
 		p1.setSize(8);
@@ -211,30 +208,6 @@ public class BSTicker extends Activity
 		p1.setBeat(6, true);
 		addPattern(p1);
 
-/*
-		PatternView p2 = new PatternView(this);
-		p2.setBeat(0, true);
-		p2.setBeat(2, true);
-		addPattern(p2);
-*/
-/*
-		PatternView p3 = new PatternView(this);
-		p3.setResolution(3);
-		p3.setSize(3);
-		p3.setBeat(0, true);
-		addPattern(p3);
-
-		PatternView p4 = new PatternView(this);
-		p4.setResolution(12);
-		p4.setSize(9);
-		p4.setBeat(0, true);
-		p4.setBeat(2, true);
-		p4.setBeat(3, true);
-		p4.setBeat(5, true);
-		p4.setBeat(6, true);
-		p4.setBeat(8, true);
-		addPattern(p4);
-*/
 		restart();
 	}
 
@@ -272,13 +245,75 @@ public class BSTicker extends Activity
 			changeState();	
 	}
 
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.main, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+		// Handle item selection
+		switch (item.getItemId())
+		{
+			case R.id.add_pattern:
+				PatternView pv = new PatternView(this);
+				addPattern(pv);
+				return true;
+			case R.id.help:
+				//showHelp();
+				return true;
+			default:
+				return super.onOptionsItemSelected(item);
+		}
+	}
+
+	@Override
+	public void onCreateContextMenu(ContextMenu menu, View view, ContextMenuInfo menuInfo)
+	{
+		super.onCreateContextMenu(menu, view, menuInfo);
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.pattern, menu);
+	}
+
+	@Override
+	public boolean onContextItemSelected(MenuItem item)
+	{
+		AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
+		switch (item.getItemId())
+		{
+			case R.id.set_size:
+				// info.id
+				return true;
+			case R.id.set_resolution:
+				// info.id
+				return true;
+			case R.id.delete:
+				// info.id
+				return true;
+			default:
+				return super.onContextItemSelected(item);
+		}
+	}
+
+	/** 
+	 * TimerThread implementation
+	 */
 	class TimerThread extends Thread
 	{
 		private boolean running = false;
 		private BSTicker mTicker;
+		private long mTimeStart; 
+		private long mTimeExpected; 
 
 		@Override public void run()
 		{
+			mTimeStart = new Date().getTime(); 
+			mTimeExpected = mTimeStart; 
+
 			while(running)
 			{
 				Log.d("BSTicker", "Tick");
@@ -318,6 +353,14 @@ public class BSTicker extends Activity
 	
 				// wait for one beat 
 				int sleepLen = pv.getTimeBeat(mTempo);
+
+				long currentTime = new Date().getTime();
+				long timeDiff = currentTime - mTimeExpected;
+				Log.d("BSTicker", "Time diff: " + timeDiff); 
+				mTimeExpected += sleepLen;
+				sleepLen -= timeDiff;	
+				Log.d("BSTicker", "New sleepLen: " + sleepLen); 
+
 				// TODO:: do time corrections caused by execution
 				try { sleep(sleepLen); } catch (InterruptedException e) { e.printStackTrace(); }
 
@@ -413,6 +456,9 @@ public class BSTicker extends Activity
 		// set total size for all patterns
 		for (int i = 0; i < mPatterns.size(); i++)
 			mPatterns.get(i).setTotalSize(totalSize);	
+
+		registerForContextMenu(pv);
+
 	}
 
 	int getResolution()
