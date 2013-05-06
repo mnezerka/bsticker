@@ -3,9 +3,13 @@ package com.bluesoft.android;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.ArrayList;
+import java.io.InputStream;
+import java.io.IOException;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.AssetManager;
+import android.content.res.AssetFileDescriptor;
 import android.os.Handler;
 import android.os.Bundle;
 import android.os.PowerManager;
@@ -16,8 +20,8 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.LinearLayout;
 import android.media.AudioManager;
-import android.media.SoundPool;
-import android.media.SoundPool.OnLoadCompleteListener;
+import android.media.AudioTrack;
+import android.media.AudioFormat;
 
 public class BSTicker extends Activity
 {
@@ -27,6 +31,7 @@ public class BSTicker extends Activity
 	private static final int DEFAULT_TEMPO = 60;
 	public static final int MAX_PATTERNS = 10;
 	private static final int TIME_ATOM = 50;
+	private static final int AUDIO_BUFFER_SIZE = 4096;
 
 	private ArrayList<PatternView> mPatterns = new ArrayList<PatternView>();
 	private Timer mTimer = new Timer();
@@ -35,11 +40,12 @@ public class BSTicker extends Activity
 	private int mCurrentRes = 0;
 	private int mTotalLength = 0;
 	private final Handler mHandler = new Handler();
-	private int mSoundId;
 	private int mTick;
 	private TimerThread mTimerThread;
-	private SoundPool mSoundPool;
-	boolean mSoundLoaded = false;
+	private AudioTrack mAudioTrack = null;
+	private byte[] mAudioTickBuffer = null; 
+	private int mAudioTickBufferSize = 0;
+	private AssetManager mAssetManager;
 	float mVolume;
 	//private Song mSong = new Song();
 	boolean mRunning = false;
@@ -146,22 +152,55 @@ public class BSTicker extends Activity
 			}
 		});
 
-		mSoundPool = new SoundPool(3, AudioManager.STREAM_MUSIC, 0);
-		mSoundPool.setOnLoadCompleteListener(new OnLoadCompleteListener()
-			{
-				@Override
-				public void onLoadComplete(SoundPool soundPool, int sampleId, int status)
-				{
-					mSoundLoaded = true;
-				}
-			});
-		mSoundId = mSoundPool.load(this, R.raw.tick, 1);	
+		mAssetManager = getAssets();
+
+		// load sound files into buffers
+		try {
+			//FileInputStream fin = new FileInputStream(filepath + "/tick.wav");
+			//DataInputStream dis = new DataInputStream(fin);
+
+			String path = "tick.wav";
+			AssetFileDescriptor ad = mAssetManager.openFd(path);
+
+			int fileSize = (int)ad.getLength();
+			Log.d("BSTicker", "Audio file has " + fileSize + " bytes");
+
+			//byte[] buffer = new byte[AUDIO_BUFFER_SIZE];
+			mAudioTickBuffer = new byte[fileSize];
+			InputStream audioStream = mAssetManager.open(path);
+			// skip wav header
+			audioStream.read(mAudioTickBuffer, 0, 0x2C);
+			mAudioTickBufferSize = audioStream.read(mAudioTickBuffer, 0, fileSize);
+			Log.d("BSTicker", "Read " + mAudioTickBufferSize + " bytes");
+
+			//bytesRead = audioStream.read(buffer, 0, AUDIO_BUFFER_SIZE);
+			/*
+			mAudioTrack.play();
+			int bytesWritten = mAudioTrack.write(buffer, 0, bytesRead);
+			Log.d("BSTicker", "Written " + bytesWritten + " bytes");
+			mAudioTrack.stop();
+			*/
+
+		} catch (IOException e) {
+			Log.e("BSTicker", "Cannot play audio: " + e);
+		}	
+
+		mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, 22050, AudioFormat.CHANNEL_CONFIGURATION_MONO, AudioFormat.ENCODING_PCM_16BIT, AUDIO_BUFFER_SIZE, AudioTrack.MODE_STREAM);
+
 
 		// Getting the user sound settings
 		AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 		float actualVolume = (float) audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
 		float maxVolume = (float) audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
 		mVolume = actualVolume / maxVolume;
+
+/*
+		PatternView p1 = new PatternView(this);
+		p1.setResolution(2);
+		p1.setSize(2);
+		p1.setBeat(1, true);
+		addPattern(p1);
+*/
 
 		PatternView p1 = new PatternView(this);
 		p1.setResolution(8);
@@ -172,11 +211,13 @@ public class BSTicker extends Activity
 		p1.setBeat(6, true);
 		addPattern(p1);
 
+/*
 		PatternView p2 = new PatternView(this);
 		p2.setBeat(0, true);
 		p2.setBeat(2, true);
 		addPattern(p2);
-
+*/
+/*
 		PatternView p3 = new PatternView(this);
 		p3.setResolution(3);
 		p3.setSize(3);
@@ -193,7 +234,7 @@ public class BSTicker extends Activity
 		p4.setBeat(6, true);
 		p4.setBeat(8, true);
 		addPattern(p4);
-
+*/
 		restart();
 	}
 
@@ -203,10 +244,6 @@ public class BSTicker extends Activity
 		if (mRunning)
 			changeState();
 
-		// release sound pool resources
-		mSoundPool.release();
-		mSoundPool = null;
-	    
 		super.onDestroy();
 	}
 	
@@ -248,9 +285,7 @@ public class BSTicker extends Activity
 
 				PatternView pv = mPatterns.get(mCurrentPattern);
 
-
-
-				// cancel current timer if current pattern is at the end (last tick of pattern has been handled (played)
+				// change current pattern if current pattern is at the end (last tick of pattern has been handled (played)
 				if (mCurrentPos >= pv.getSize())
 				{
 					// go to next pattern
@@ -264,15 +299,26 @@ public class BSTicker extends Activity
 				}
 
 				Log.d("BSTicker", "Do something cPos" + mCurrentPos);
+
+				// Play current beat (with check if sounds are loaded already)
+				if (pv.getBeat(mCurrentPos) && mAudioTickBufferSize > 0)
+				{
+					Log.d("BSTicker", "Playing beat: cPos:" + mCurrentPos);
+					mAudioTrack.play();
+					int bytesWritten = mAudioTrack.write(mAudioTickBuffer, 0, mAudioTickBufferSize);
+					Log.d("BSTicker", "Written " + bytesWritten + " bytes");
+					mAudioTrack.stop();
+				}
+
 				mHandler.post(new Runnable() {
 					public void run() {
 						updateOnBeat();
 					}
 				});
-
 	
 				// wait for one beat 
 				int sleepLen = pv.getTimeBeat(mTempo);
+				// TODO:: do time corrections caused by execution
 				try { sleep(sleepLen); } catch (InterruptedException e) { e.printStackTrace(); }
 
 				mCurrentPos++;
@@ -332,13 +378,6 @@ public class BSTicker extends Activity
 	{
 		// get current pattern - pattern that is played
 		PatternView pv = mPatterns.get(mCurrentPattern);
-
-		// Play current beat (with check if sounds are loaded already)
-		if (pv.getBeat(mCurrentPos) && mSoundLoaded)
-		{
-			Log.d("BSTicker", "Play beat: cPos:" + mCurrentPos);
-			mSoundPool.play(mSoundId, mVolume, mVolume, 1, 0, 1f);
-		}
 
 		// if previous pattern is different than current
 		int prevPatternIx = mCurrentPattern > 0 ? mCurrentPattern - 1 : mPatterns.size() - 1; 
