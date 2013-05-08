@@ -6,6 +6,8 @@ import android.graphics.*;
 import android.os.Build;
 //import android.util.AttributeSet;
 import android.view.*;
+import android.widget.Toast;
+import android.support.v4.view.GestureDetectorCompat;
 
 class PatternView extends View
 {
@@ -14,6 +16,7 @@ class PatternView extends View
 	public static final int DEFAULT_RESOLUTION = 4;
 	public static final int DEFAULT_TEMPO = 60;
 
+	private GestureDetectorCompat mDetector;
 	private String mName = new String("Ptn");
 	private int mSize = DEFAULT_SIZE;
 	private float mTotalSize = 1;
@@ -26,20 +29,39 @@ class PatternView extends View
 	private Paint mBeatPaint;
 	private Paint mBeatActivePaint;
 	private Paint mTickPaint;
+	private PatternContextMenuInfo mPatternContextMenuInfo;
 
 	private int mTempo = DEFAULT_TEMPO;
 	private int mTimeBeat = 240000 / (mResolution * mTempo);
 	private int mTimeTotal = mSize * mTimeBeat;
 
+	private boolean mTouchStarted = false;
+
 	public PatternView(Context context)
 	{
 		super(context);
+
+		mPatternContextMenuInfo = new PatternContextMenuInfo(this);
 
 		setSize(DEFAULT_SIZE);
 		for (int i = 0; i < MAX_SIZE; i = i + 1)
 			mBeats[i] = false;
 
+		mDetector = new GestureDetectorCompat(this, new MyGestureListener());
+
 		init();
+	}
+
+	class MyGestureListener extends GestureDetector.SimpleOnGestureListener
+	{
+		private static final String DEBUG_TAG = "Gestures"; 
+			        
+		@Override
+		public boolean onDown(MotionEvent event)
+		{ 
+			Log.d(DEBUG_TAG,"onDown: " + event.toString()); 
+			return true;
+		}
 	}
 
 	public int getSize()
@@ -49,6 +71,7 @@ class PatternView extends View
 
 	public void setSize(int size)
 	{
+		Log.d("BSTicker", "Size was set to " + size);
 		mSize = Math.min(MAX_SIZE, size);
 	}
 
@@ -197,6 +220,61 @@ class PatternView extends View
 
 		int parentWidth = MeasureSpec.getSize(widthMeasureSpec);
 		this.setMeasuredDimension(parentWidth, 40);
+	}
+
+	@Override
+	public boolean onTouchEvent(MotionEvent event)
+	{
+		Log.d("BSTicker", "Touch even" + event);
+
+		int action = event.getAction();
+		if (action == MotionEvent.ACTION_DOWN)
+		{
+			mTouchStarted = true;
+		}
+		else if (action == MotionEvent.ACTION_MOVE)
+		{
+			// movement: cancel the touch press
+			mTouchStarted = false;
+		
+			//int x = event.getX();
+			//int y = event.getY();
+		
+			//invalidate(); // request draw
+		}
+		else if (action == MotionEvent.ACTION_UP)
+		{
+			if (mTouchStarted)
+			{
+				// touch press complete, show toast
+				//Toast.makeText(getContext(), "Coords: " + x + ", " + y, 1000).show();
+				Toast.makeText(getContext(), "Touch", 1000).show();
+			}
+		}
+
+		return super.onTouchEvent(event);
+	}
+
+	public class PatternContextMenuInfo implements ContextMenu.ContextMenuInfo
+	{
+
+		private PatternView mPatternView;
+
+		public PatternContextMenuInfo(PatternView patternView)
+		{
+			mPatternView = patternView;
+		}
+
+		public PatternView getPatternView()
+		{
+			return mPatternView;
+		}
+	}
+
+	@Override
+	protected ContextMenu.ContextMenuInfo getContextMenuInfo()
+	{
+		return mPatternContextMenuInfo;
 	}
 }
 

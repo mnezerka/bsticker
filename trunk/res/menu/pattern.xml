@@ -1,12 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-	<item
-		android:id="@+id/set_size"
-		android:title="@string/pattern_set_size" />
-	<item
-		android:id="@+id/set_resolution"
-		android:title="@string/pattern_set_resolution" />
-	<item
-		android:id="@+id/delete"
-		android:title="@string/pattern_delete" />
+	<item android:id="@+id/edit" android:title="Edit"> </item>
+	<item android:id="@+id/delete" android:title="@string/pattern_delete" />
 </menu>
