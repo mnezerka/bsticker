@@ -3,35 +3,55 @@ package com.bluesoft.android;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Date;
 import java.io.InputStream;
 import java.io.IOException;
 import android.app.Activity;
+import android.app.Dialog;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.content.res.AssetFileDescriptor;
+import android.content.DialogInterface;
 import android.os.Handler;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
+import android.view.LayoutInflater;
+import android.view.View.OnClickListener;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.LinearLayout;
 import android.widget.AdapterView.AdapterContextMenuInfo;
+import android.widget.Spinner;
+import android.widget.Toast;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.AudioFormat;
+import android.support.v4.app.DialogFragment;
+import android.support.v4.app.FragmentActivity;
 
-public class BSTicker extends Activity
+
+public class BSTicker extends FragmentActivity
 {
+	/*
+	public interface PatternDialogListener
+	{
+			void onFinishEditDialog(PatternView pattern);
+	}
+	*/
 	private static final int maxTempo = 200;
 	private static final String KEY_TEMPO = "METRONOME_TEMPO";
 	private static final String PREFS = "bsticker.prefs";
@@ -260,8 +280,9 @@ public class BSTicker extends Activity
 		switch (item.getItemId())
 		{
 			case R.id.add_pattern:
-				PatternView pv = new PatternView(this);
-				addPattern(pv);
+				// create an instance of the dialog fragment and show it
+				DialogFragment dialog = new PatternDialogFragment(4, 4, null);
+				dialog.show(getSupportFragmentManager(), "PatternDialogFragment");
 				return true;
 			case R.id.help:
 				//showHelp();
@@ -282,26 +303,134 @@ public class BSTicker extends Activity
 	@Override
 	public boolean onContextItemSelected(MenuItem item)
 	{
-		AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
+		//AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
+		PatternView.PatternContextMenuInfo info = (PatternView.PatternContextMenuInfo) item.getMenuInfo();
 		switch (item.getItemId())
 		{
-			case R.id.set_size:
-				// info.id
-				return true;
-			case R.id.set_resolution:
-				// info.id
+			case R.id.edit:
+				Log.d("BSTicker", "Editing existing item ");
+				DialogFragment dialog = new PatternDialogFragment(
+					info.getPatternView().getSize(),
+					info.getPatternView().getResolution(),
+					info.getPatternView());
+				dialog.show(getSupportFragmentManager(), "PatternDialogFragment");
 				return true;
 			case R.id.delete:
-				// info.id
 				return true;
 			default:
 				return super.onContextItemSelected(item);
 		}
 	}
 
-	/** 
-	 * TimerThread implementation
-	 */
+    public void onFinishEditPatternDialog(PatternDialogFragment dialog)
+	{
+		//Toast.makeText(this, "Hi, " + inputText, Toast.LENGTH_SHORT).show();
+		Log.d("BSTicker", "Dialog successfully closed");
+		if (dialog.mPatternView == null)
+		{
+			// create new pattern
+			Log.d("BSTicker", "Creating new item ");
+			PatternView p = new PatternView(this);
+			p.setSize(dialog.mSize);
+			p.setResolution(dialog.mResolution + 1);
+			addPattern(p);
+		}
+		else
+		{
+			Log.d("BSTicker", "Updating existing item");
+			// update existing pattern
+			dialog.mPatternView.setSize(dialog.mSize);
+			dialog.mPatternView.setResolution(dialog.mResolution + 1);
+		}
+	}
+
+
+	public class PatternDialogFragment extends DialogFragment
+	{
+		//PatternView mPattern;
+		int mSize;
+		int mResolution;
+		PatternView mPatternView;
+		
+		public PatternDialogFragment(int size, int resolution, PatternView patternView)
+		{
+			super();
+
+			mSize = size;
+			mResolution = resolution;
+			mPatternView = patternView;
+		}
+
+		@Override
+		public void onCreate(Bundle savedInstanceState)
+		{
+			super.onCreate(savedInstanceState);
+		}
+
+		@Override
+		public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
+		{
+			View v = inflater.inflate(R.layout.dialog_pattern, container, false);
+			final EditText ctrlSize = (EditText)v.findViewById(R.id.size);
+			ctrlSize.setText(Integer.toString(mSize));
+			final Spinner spinner = (Spinner)v.findViewById(R.id.resolution);
+			// Create an ArrayAdapter using the string array and a default spinner layout
+			ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getActivity(), R.array.pattern_resolutions, android.R.layout.simple_spinner_item);
+			// Specify the layout to use when the list of choices appears
+			adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+			//adapter.setSelection(2);
+			// Apply the adapter to the spinner
+			spinner.setAdapter(adapter);
+			spinner.setSelection(mResolution - 1);
+	        // watch for button clicks.
+			final Button btnOk = (Button)v.findViewById(R.id.dialogButtonOK);
+			btnOk.setOnClickListener(new OnClickListener()
+			{
+				public void onClick(View v)
+				{
+   					//((FragmentDialog)getActivity()).showDialog();
+					if (ctrlSize.getText().toString().length() > 0 )
+					{
+						int size = 0;
+						try {
+							size = Integer.parseInt(ctrlSize.getText().toString());
+							Log.d("BSTicker", "size is " + size);
+						} catch (NumberFormatException e) {
+							Log.d("BSTicker", "cannot parse int size");
+							size = 0;
+						}
+
+						// if all values are ok
+						if (size > 0 && size < PatternView.MAX_SIZE)
+						{
+							// update pattern and exit
+							mSize = size;
+							mResolution = spinner.getSelectedItemPosition();
+							BSTicker activity = (BSTicker) getActivity();
+							activity.onFinishEditPatternDialog(PatternDialogFragment.this);
+							PatternDialogFragment.this.getDialog().dismiss();
+						}
+						else
+						{
+							Toast.makeText(getActivity(), "Size must number > 0", Toast.LENGTH_LONG).show();
+						}
+					}
+					else
+					{
+						Toast.makeText(getActivity(), "Size must set", Toast.LENGTH_LONG).show();
+
+					}
+				}
+			});
+
+	        // Watch for cancel button clicks.
+			final Button btnCancel = (Button)v.findViewById(R.id.dialogButtonCancel);
+			btnCancel.setOnClickListener(new OnClickListener() { public void onClick(View v) { PatternDialogFragment.this.getDialog().cancel(); } });
+
+			return v;
+		}
+	}
+
 	class TimerThread extends Thread
 	{
 		private boolean running = false;
@@ -458,7 +587,6 @@ public class BSTicker extends Activity
 			mPatterns.get(i).setTotalSize(totalSize);	
 
 		registerForContextMenu(pv);
-
 	}
 
 	int getResolution()

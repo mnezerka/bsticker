@@ -6,9 +6,24 @@
     <string name="stop">Stop</string>
     <string name="add_pattern">Add</string>
     <string name="help">Help</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
 
     <string name="pattern_set_size">Size</string>
     <string name="pattern_set_resolution">Resolution</string>
     <string name="pattern_delete">Delete</string>
 
+    <string name="hint_size">Beats in pattern</string>
+    <string name="hint_resolution">Beats duration</string>
+
+	<string-array name="pattern_resolutions">
+        <item>Whole note</item>
+        <item>Half note</item>
+        <item>Full note triplet</item>
+        <item>Quarter note</item>
+        <item>1/5</item>
+        <item>Half note triplet</item>
+        <item>1/7</item>
+        <item>Eighth note</item>
+	</string-array>
 </resources>
