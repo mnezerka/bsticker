@@ -17,13 +17,17 @@
     <string name="hint_resolution">Beats duration</string>
 
 	<string-array name="pattern_resolutions">
-        <item>Whole note</item>
-        <item>Half note</item>
-        <item>Full note triplet</item>
-        <item>Quarter note</item>
+        <item>1 whole</item>
+        <item>1/2 half</item>
+        <item>1/3 full triplet</item>
+        <item>1/4 quarter note</item>
         <item>1/5</item>
-        <item>Half note triplet</item>
+        <item>1/6 half triplet</item>
         <item>1/7</item>
-        <item>Eighth note</item>
+        <item>1/8 eighth note</item>
+        <item>1/9</item>
+        <item>1/10</item>
+        <item>1/11</item>
+        <item>1/12 quarter triplet</item>
 	</string-array>
 </resources>

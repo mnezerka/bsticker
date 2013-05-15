@@ -6,7 +6,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Date;
 import java.io.InputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import org.xmlpull.v1.XmlSerializer;
 import android.app.Activity;
 import android.app.Dialog;
 import android.app.AlertDialog;
@@ -15,10 +17,12 @@ import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.content.res.AssetFileDescriptor;
 import android.content.DialogInterface;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.util.Log;
+import android.util.Xml;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Menu;
@@ -59,6 +63,7 @@ public class BSTicker extends FragmentActivity
 	public static final int MAX_PATTERNS = 10;
 	private static final int TIME_ATOM = 50;
 	private static final int AUDIO_BUFFER_SIZE = 4096;
+	private static final String fileName = "current.xml";
 
 	private ArrayList<PatternView> mPatterns = new ArrayList<PatternView>();
 	private Timer mTimer = new Timer();
@@ -263,6 +268,8 @@ public class BSTicker extends FragmentActivity
 		// stop metronome if it is running
 		if (mRunning)
 			changeState();	
+
+		save();
 	}
 
 	@Override
@@ -343,7 +350,6 @@ public class BSTicker extends FragmentActivity
 			dialog.mPatternView.setResolution(dialog.mResolution + 1);
 		}
 	}
-
 
 	public class PatternDialogFragment extends DialogFragment
 	{
@@ -561,7 +567,7 @@ public class BSTicker extends FragmentActivity
 				mPatterns.get(prevPatternIx).setPos(-1);
 		}
 		pv.setPos(mCurrentPos);
-		tempoVal.setText("Pos:" + mCurrentPos);
+		//tempoVal.setText("Pos:" + mCurrentPos);
 	}
 
 	public void addPattern(PatternView pv)
@@ -597,4 +603,89 @@ public class BSTicker extends FragmentActivity
 				result = mPatterns.get(i).getResolution();
 		return result;
 	}
+
+
+	/*
+	public boolean isExternalStorageAvailabe()
+	{
+		boolean mExternalStorageAvailable = false;
+		boolean mExternalStorageWriteable = false;
+		String state = Environment.getExternalStorageState();
+
+		if (Environment.MEDIA_MOUNTED.equals(state))
+		{
+			// We can read and write the media
+			mExternalStorageAvailable = mExternalStorageWriteable = true;
+		} else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state))
+		{
+			// We can only read the media
+			mExternalStorageAvailable = true;
+			mExternalStorageWriteable = false;
+		} else {
+			// Something else is wrong. It may be one of many other states, but all we need
+			//  to know is we can neither read nor write
+			mExternalStorageAvailable = mExternalStorageWriteable = false;
+		}
+
+		return mExternalStorageWriteable;
+	}
+	*/
+
+	public void save()
+	{
+
+		String filePath = fileName;
+
+		/*
+		if (isExternalStorageAvailable)
+		{
+			String baseDir = Environment.getExternalStorageDirectory().getAbsolutePath();
+			// Not sure if the / is on the path or not
+			filePath = baseDir + File.separator + fileName;
+		}	
+		*/
+
+		Log.d("BSTicker", "Saving current state to " + filePath); 
+
+		try {
+
+			FileOutputStream fos = openFileOutput(fileName, Context.MODE_APPEND);
+			XmlSerializer serializer = Xml.newSerializer();
+			serializer.setOutput(fos, "UTF-8");
+			serializer.startDocument(null, Boolean.valueOf(true));
+			//serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true);
+			serializer.startTag(null, "state");
+
+			for(int i = 0 ; i < mPatterns.size() ; i++)
+			{
+				serializer.startTag(null, "pattern");
+				serializer.endTag(null, "pattern");
+			}
+			serializer.endTag(null, "state");
+			serializer.endDocument();
+			serializer.flush();
+			fos.close();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public void load()
+	{
+		// check if file exists
+
+		/*
+		public List parse(InputStream in) throws XmlPullParserException, IOException {
+		try {
+			XmlPullParser parser = Xml.newPullParser();
+			parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+			parser.setInput(in, null);
+			parser.nextTag();
+			return readFeed(parser);
+		} finally {
+			in.close();
+		}
+		*/
+	}
+
 }
