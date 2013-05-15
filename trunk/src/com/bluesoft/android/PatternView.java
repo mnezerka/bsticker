@@ -47,21 +47,29 @@ class PatternView extends View
 		for (int i = 0; i < MAX_SIZE; i = i + 1)
 			mBeats[i] = false;
 
-		mDetector = new GestureDetectorCompat(this, new MyGestureListener());
+		mDetector = new GestureDetectorCompat(getContext(), new MyGestureListener(this));
 
 		init();
 	}
 
 	class MyGestureListener extends GestureDetector.SimpleOnGestureListener
 	{
-		private static final String DEBUG_TAG = "Gestures"; 
-			        
+		PatternView mPatternView;
+		public MyGestureListener(PatternView patternView)
+		{
+			super();
+			mPatternView = patternView;
+		}
+
 		@Override
-		public boolean onDown(MotionEvent event)
+		public boolean onSingleTapUp(MotionEvent event)
 		{ 
-			Log.d(DEBUG_TAG,"onDown: " + event.toString()); 
+			//Log.d("BSTicker", "onSingleTapUp: " + event.toString() + "time: " +  (event.getDownTime() - event.getEventTime())); 
+			//Log.d("BSTicker", "onSingleTapUp: " + event.toString() + "x: " + event.getX() + " rawx: " + event.getRawX());
+			mPatternView.onTap(event);	
 			return true;
 		}
+
 	}
 
 	public int getSize()
@@ -88,6 +96,7 @@ class PatternView extends View
 
 	public void setBeat(int pos, boolean value)
 	{
+		Log.d("BSTicker", "setBeat pos: " + pos + " value: " + value);
 		pos = Math.min(MAX_SIZE, pos);
 		mBeats[pos] = value;
 	}
@@ -161,16 +170,6 @@ class PatternView extends View
 		mTickPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		mTickPaint.setStyle(Paint.Style.STROKE);
 		mTickPaint.setColor(Color.WHITE);
-
-		/*
-		mPiePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-		mPiePaint.setStyle(Paint.Style.FILL);
-		mPiePaint.setTextSize(mTextHeight);
-
-		mShadowPaint = new Paint(0);
-		mShadowPaint.setColor(0xff101010);
-		mShadowPaint.setMaskFilter(new BlurMaskFilter(8, BlurMaskFilter.Blur.NORMAL));
-		*/
 	}
 
 	/*
@@ -222,37 +221,24 @@ class PatternView extends View
 		this.setMeasuredDimension(parentWidth, 40);
 	}
 
+	protected void onTap(MotionEvent event)
+	{
+		Log.d("BSTicker", "On tap occured");
+
+		int beat = (int)event.getX() / (getWidth() / mSize);
+		Log.d("BSTicker", "Beat to select/unselect: " + beat);
+
+		setBeat(beat, !getBeat(beat));
+		invalidate();
+	}
+
 	@Override
 	public boolean onTouchEvent(MotionEvent event)
 	{
-		Log.d("BSTicker", "Touch even" + event);
+		//Log.d("BSTicker", "Touch even" + event);
 
-		int action = event.getAction();
-		if (action == MotionEvent.ACTION_DOWN)
-		{
-			mTouchStarted = true;
-		}
-		else if (action == MotionEvent.ACTION_MOVE)
-		{
-			// movement: cancel the touch press
-			mTouchStarted = false;
-		
-			//int x = event.getX();
-			//int y = event.getY();
-		
-			//invalidate(); // request draw
-		}
-		else if (action == MotionEvent.ACTION_UP)
-		{
-			if (mTouchStarted)
-			{
-				// touch press complete, show toast
-				//Toast.makeText(getContext(), "Coords: " + x + ", " + y, 1000).show();
-				Toast.makeText(getContext(), "Touch", 1000).show();
-			}
-		}
-
-		return super.onTouchEvent(event);
+		mDetector.onTouchEvent(event);
+        return super.onTouchEvent(event);
 	}
 
 	public class PatternContextMenuInfo implements ContextMenu.ContextMenuInfo
