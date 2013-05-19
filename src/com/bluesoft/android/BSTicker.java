@@ -7,8 +7,11 @@ import java.util.List;
 import java.util.Date;
 import java.io.InputStream;
 import java.io.FileOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import org.xmlpull.v1.XmlSerializer;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
 import android.app.Activity;
 import android.app.Dialog;
 import android.app.AlertDialog;
@@ -232,6 +235,8 @@ public class BSTicker extends FragmentActivity
 		p1.setBeat(4, true);
 		p1.setBeat(6, true);
 		addPattern(p1);
+
+		load();
 
 		restart();
 	}
@@ -633,7 +638,6 @@ public class BSTicker extends FragmentActivity
 
 	public void save()
 	{
-
 		String filePath = fileName;
 
 		/*
@@ -673,7 +677,30 @@ public class BSTicker extends FragmentActivity
 	public void load()
 	{
 		// check if file exists
+		String filePath = fileName;
 
+		Log.d("BSTicker", "Loading current from " + filePath); 
+
+		FileInputStream fis = null;
+		//fis = openFileInput(fileName);
+		try {
+			fis = openFileInput(fileName);
+			XmlPullParser parser = Xml.newPullParser();
+			parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+			parser.setInput(fis, null);
+			parser.nextTag();
+			//return readXml(parser)
+			readXml(parser);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		} finally {
+			try {
+				if (fis != null)
+					fis.close();
+			} catch (IOException e) {
+				;	
+			}
+		}
 		/*
 		public List parse(InputStream in) throws XmlPullParserException, IOException {
 		try {
@@ -688,4 +715,47 @@ public class BSTicker extends FragmentActivity
 		*/
 	}
 
+	private void readXml(XmlPullParser parser) throws XmlPullParserException, IOException
+	{
+		parser.require(XmlPullParser.START_TAG, null, "state");
+		while (parser.next() != XmlPullParser.END_TAG)
+		{
+			if (parser.getEventType() != XmlPullParser.START_TAG)
+			{
+				continue;
+			}
+
+			String name = parser.getName();
+			// Starts by looking for the entry tag
+			if (name.equals("pattern")) {
+				Log.d("BSTicker", "xml-pattern");
+				//entries.add(readEntry(parser));
+			} else {
+				xmlSkipElement(parser);
+			}
+		}  
+		//return entries;
+
+	}			
+
+	private void xmlSkipElement(XmlPullParser parser) throws XmlPullParserException, IOException
+	{
+		if (parser.getEventType() != XmlPullParser.START_TAG)
+		{
+			throw new IllegalStateException();
+		}
+		int depth = 1;
+		while (depth != 0)
+		{
+			switch (parser.next())
+			{
+				case XmlPullParser.END_TAG:
+					depth--;
+					break;
+				case XmlPullParser.START_TAG:
+					depth++;
+					break;
+			}
+		}
+	}
 }
