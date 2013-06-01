@@ -168,8 +168,10 @@ class PatternView extends View
 		mBeatActivePaint.setColor(Color.GREEN);
 
 		mTickPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-		mTickPaint.setStyle(Paint.Style.STROKE);
-		mTickPaint.setColor(Color.WHITE);
+		//mTickPaint.setStyle(Paint.Style.STROKE);
+		mTickPaint.setStyle(Paint.Style.FILL);
+		//mTickPaint.setColor(Color.WHITE);
+		mTickPaint.setColor(Color.RED);
 	}
 
 	/*
@@ -193,14 +195,15 @@ class PatternView extends View
 		{
 			Paint beatPaint = mBeats[beatIx] ? mBeatActivePaint : mBeatPaint;
 
-			canvas.drawRect(beatRect, beatPaint);
+			canvas.drawRoundRect(beatRect, 5, 5, beatPaint);
 
 			// draw tick position
 			if (beatIx == mPos)
 			{
 				//canvas.drawLine(beatRect.left, beatRect.top, beatRect.right, beatRect.bottom, mTickPaint);
 				//canvas.drawLine(beatRect.right, beatRect.top, beatRect.left, beatRect.bottom, mTickPaint);
-				canvas.drawRect(beatRect, mTickPaint);
+				//canvas.drawRoundRect(beatRect, 5, 5, mTickPaint);
+				canvas.drawCircle(beatRect.centerX(), beatRect.centerY(), (beatRect.width() / 2 - 5), mTickPaint);
 			}
 			beatRect.offset(beatWidth, 0);
 		}

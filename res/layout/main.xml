@@ -70,12 +70,13 @@
 		android:layout_height="wrap_content"
 		android:id="@+id/tempo" />
 
-	<Button
-		android:gravity="bottom"
+	<ToggleButton 
+		android:gravity="center"
 		android:layout_width="fill_parent"
-		android:layout_height="wrap_content" android:text="@string/start"
-		android:layout_weight="0"
+		android:layout_height="wrap_content"
+		android:textOn="@string/stop"
+		android:textOff="@string/start"
 		android:textSize="25sp"
-		android:id="@+id/startstop" />
+		android:id="@+id/startstop" /> 
 
 </LinearLayout>

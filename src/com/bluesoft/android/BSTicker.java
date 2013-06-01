@@ -37,6 +37,7 @@ import android.view.LayoutInflater;
 import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -44,6 +45,7 @@ import android.widget.LinearLayout;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.Spinner;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.AudioFormat;
@@ -83,7 +85,7 @@ public class BSTicker extends FragmentActivity
 	private AssetManager mAssetManager;
 	float mVolume;
 	boolean mRunning = false;
-	Button mStartStopButton;
+	ToggleButton mStartStopButton;
 	SeekBar mSeekBar;
 	TextView tempoVal;
 	Button mPlus;
@@ -113,7 +115,7 @@ public class BSTicker extends FragmentActivity
 		PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
 		mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MetronomeLock");
 
-		mStartStopButton = (Button)findViewById(R.id.startstop);
+		mStartStopButton = (ToggleButton)findViewById(R.id.startstop);
 	       
 		mSeekBar = (SeekBar) findViewById(R.id.tempo);
 		mSeekBar.setMax(maxTempo + 1);
@@ -177,12 +179,29 @@ public class BSTicker extends FragmentActivity
 		});
 
     
+		/*
 		mStartStopButton.setOnClickListener(new View.OnClickListener()
 		{
 			public void onClick(View view)
 			{
 				changeState();
 			}
+		});
+		*/
+
+		mStartStopButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener()
+		{
+			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked)
+			{
+				if (isChecked)
+				{
+					changeState();
+					// The toggle is enabled
+				} else {
+					// The toggle is disabled
+					changeState();
+        		}
+            }
 		});
 
 		mAssetManager = getAssets();
@@ -219,7 +238,6 @@ public class BSTicker extends FragmentActivity
 		}	
 
 		mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, 22050, AudioFormat.CHANNEL_CONFIGURATION_MONO, AudioFormat.ENCODING_PCM_16BIT, AUDIO_BUFFER_SIZE, AudioTrack.MODE_STREAM);
-
 
 		// Getting the user sound settings
 		AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
@@ -328,6 +346,8 @@ public class BSTicker extends FragmentActivity
 				dialog.show(getSupportFragmentManager(), "PatternDialogFragment");
 				return true;
 			case R.id.delete:
+				Log.d("BSTicker", "Remove existing item ");
+				removePattern(info.getPatternView());
 				return true;
 			default:
 				return super.onContextItemSelected(item);
@@ -522,7 +542,7 @@ public class BSTicker extends FragmentActivity
 		if (mRunning)
 		{
 			mWakeLock.acquire();
-			mStartStopButton.setText(R.string.stop);
+			//mStartStopButton.setText(R.string.stop);
 
 			mCurrentPattern = 0;
 			mCurrentPos = 0;
@@ -553,7 +573,7 @@ public class BSTicker extends FragmentActivity
 			//mTimerTask.cancel();
 			mTimerThread.setRunning(false);
 			mTimerThread = null;
-			mStartStopButton.setText(R.string.start);
+			//mStartStopButton.setText(R.string.start);
 		}
 	}
 
@@ -575,6 +595,7 @@ public class BSTicker extends FragmentActivity
 		//tempoVal.setText("Pos:" + mCurrentPos);
 	}
 
+	// add pattern to the current song (at the end)
 	public void addPattern(PatternView pv)
 	{
 		mPatterns.add(pv);
@@ -583,6 +604,23 @@ public class BSTicker extends FragmentActivity
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
 		ll.addView(pv, lp);
 
+		afterSongContentModification();
+
+		registerForContextMenu(pv);
+	}
+
+	public void removePattern(PatternView pv)
+	{
+		LinearLayout ll = (LinearLayout)findViewById(R.id.songlayout);
+		ll.removeView(pv);
+
+		mPatterns.remove(pv);
+
+		afterSongContentModification();
+	}
+
+	private void afterSongContentModification()
+	{
 		// recalculate size of all patterns
 		float totalSize = 0;
 		for (int i = 0; i < mPatterns.size(); i++)
@@ -596,8 +634,6 @@ public class BSTicker extends FragmentActivity
 		// set total size for all patterns
 		for (int i = 0; i < mPatterns.size(); i++)
 			mPatterns.get(i).setTotalSize(totalSize);	
-
-		registerForContextMenu(pv);
 	}
 
 	int getResolution()
@@ -653,19 +689,26 @@ public class BSTicker extends FragmentActivity
 
 		try {
 
-			FileOutputStream fos = openFileOutput(fileName, Context.MODE_APPEND);
+			FileOutputStream fos = openFileOutput(fileName, Context.MODE_PRIVATE);
 			XmlSerializer serializer = Xml.newSerializer();
 			serializer.setOutput(fos, "UTF-8");
 			serializer.startDocument(null, Boolean.valueOf(true));
 			//serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true);
-			serializer.startTag(null, "state");
+			serializer.startTag(null, "song");
 
 			for(int i = 0 ; i < mPatterns.size() ; i++)
 			{
+				PatternView pv = mPatterns.get(i);
+				String beats = "";
+				for (int beatIx = 0; beatIx < pv.getSize(); beatIx++)
+					beats += pv.getBeat(beatIx) ? "1" : "0";	
 				serializer.startTag(null, "pattern");
+				serializer.attribute(null, "resolution", Integer.toString(pv.getResolution()));
+				serializer.attribute(null, "size", Integer.toString(pv.getSize()));
+				serializer.attribute(null, "beats", beats);
 				serializer.endTag(null, "pattern");
 			}
-			serializer.endTag(null, "state");
+			serializer.endTag(null, "song");
 			serializer.endDocument();
 			serializer.flush();
 			fos.close();
@@ -688,8 +731,7 @@ public class BSTicker extends FragmentActivity
 			XmlPullParser parser = Xml.newPullParser();
 			parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
 			parser.setInput(fis, null);
-			parser.nextTag();
-			//return readXml(parser)
+			//parser.nextTag();
 			readXml(parser);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -701,42 +743,88 @@ public class BSTicker extends FragmentActivity
 				;	
 			}
 		}
-		/*
-		public List parse(InputStream in) throws XmlPullParserException, IOException {
-		try {
-			XmlPullParser parser = Xml.newPullParser();
-			parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
-			parser.setInput(in, null);
-			parser.nextTag();
-			return readFeed(parser);
-		} finally {
-			in.close();
-		}
-		*/
 	}
 
 	private void readXml(XmlPullParser parser) throws XmlPullParserException, IOException
 	{
-		parser.require(XmlPullParser.START_TAG, null, "state");
-		while (parser.next() != XmlPullParser.END_TAG)
+		Log.d("BSTicker", "looking for song tag");
+		while (parser.next() != XmlPullParser.END_DOCUMENT)
 		{
 			if (parser.getEventType() != XmlPullParser.START_TAG)
-			{
 				continue;
-			}
 
 			String name = parser.getName();
-			// Starts by looking for the entry tag
-			if (name.equals("pattern")) {
-				Log.d("BSTicker", "xml-pattern");
-				//entries.add(readEntry(parser));
+			if (name.equals("song")) {
+				Log.d("BSTicker", "xml song found");
+				readXmlSong(parser);
+				return; // look for first song end exit after parsing it
 			} else {
 				xmlSkipElement(parser);
 			}
-		}  
-		//return entries;
-
+		}
 	}			
+
+	private void readXmlSong(XmlPullParser parser) throws XmlPullParserException, IOException
+	{
+		parser.require(XmlPullParser.START_TAG, null, "song");
+		while (mPatterns.size() > 0)
+		{
+			removePattern(mPatterns.get(0));
+		}
+			
+		while (parser.next() != XmlPullParser.END_TAG)
+		{
+			if (parser.getEventType() != XmlPullParser.START_TAG)
+				continue;
+
+			String name = parser.getName();
+			if (name.equals("pattern")) {
+				readXmlPattern(parser);
+			}	
+			else
+			{
+				xmlSkipElement(parser);
+			}
+		}
+	}
+
+	private void readXmlPattern(XmlPullParser parser) throws XmlPullParserException, IOException
+	{
+		Log.d("BSTicker", "readXmlPattern");
+		parser.require(XmlPullParser.START_TAG, null, "pattern");
+
+		// get pattern params from attributes
+		String resStr = parser.getAttributeValue(null, "resolution");
+		String sizeStr = parser.getAttributeValue(null, "size");
+		String beats = parser.getAttributeValue(null, "beats");
+
+		if (resStr != null && sizeStr != null && beats != null)
+		{
+			int resInt = Integer.parseInt(resStr);
+			int sizeInt = Integer.parseInt(sizeStr);
+			if (resInt > 0 && sizeInt > 0)
+			{
+				PatternView p = new PatternView(this);
+				p.setResolution(resInt);
+				p.setSize(sizeInt);
+
+				for (int beatIx = 0; beatIx < beats.length(); beatIx++)
+					if (beats.charAt(beatIx) == '1')
+						p.setBeat(beatIx, true);
+				addPattern(p);
+			}	
+		}
+		/*
+		PatternView p = new PatternView(this);
+		p.setResolution(4);
+		p.setSize(4);
+		p.setBeat(0, true);
+		p.setBeat(2, true);
+		addPattern(p);
+		*/
+
+		xmlSkipElement(parser);
+	}
 
 	private void xmlSkipElement(XmlPullParser parser) throws XmlPullParserException, IOException
 	{
@@ -747,6 +835,7 @@ public class BSTicker extends FragmentActivity
 		int depth = 1;
 		while (depth != 0)
 		{
+			Log.d("BSTicker", "skipping next item, depth is " + depth);
 			switch (parser.next())
 			{
 				case XmlPullParser.END_TAG:
