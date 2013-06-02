@@ -171,7 +171,7 @@ class PatternView extends View
 		//mTickPaint.setStyle(Paint.Style.STROKE);
 		mTickPaint.setStyle(Paint.Style.FILL);
 		//mTickPaint.setColor(Color.WHITE);
-		mTickPaint.setColor(Color.RED);
+		mTickPaint.setColor(Color.BLUE);
 	}
 
 	/*
@@ -188,7 +188,7 @@ class PatternView extends View
 	{
 		super.onDraw(canvas);
 
-		float beatWidth = mBounds.width() * (mTotalSize / mResolution);
+		float beatWidth = getBeatWidth();
 		RectF beatRect = new RectF(1, 1, beatWidth - 2, mBounds.height() - 2); 
 
 		for (int beatIx = 0; beatIx < getSize(); beatIx = beatIx + 1)
@@ -196,6 +196,7 @@ class PatternView extends View
 			Paint beatPaint = mBeats[beatIx] ? mBeatActivePaint : mBeatPaint;
 
 			canvas.drawRoundRect(beatRect, 5, 5, beatPaint);
+			//canvas.drawRoundRect(beatRect, 5, 5, mStrokePaint);
 
 			// draw tick position
 			if (beatIx == mPos)
@@ -203,10 +204,17 @@ class PatternView extends View
 				//canvas.drawLine(beatRect.left, beatRect.top, beatRect.right, beatRect.bottom, mTickPaint);
 				//canvas.drawLine(beatRect.right, beatRect.top, beatRect.left, beatRect.bottom, mTickPaint);
 				//canvas.drawRoundRect(beatRect, 5, 5, mTickPaint);
-				canvas.drawCircle(beatRect.centerX(), beatRect.centerY(), (beatRect.width() / 2 - 5), mTickPaint);
+				//canvas.drawCircle(beatRect.centerX(), beatRect.centerY(), (beatRect.width() / 2 - 5), mTickPaint);
+				canvas.drawRoundRect(beatRect, 5, 5, mTickPaint);
+				//canvas.drawRoundRect(beatRect, 5, 5, mStrokePaint);
 			}
 			beatRect.offset(beatWidth, 0);
 		}
+	}
+
+	protected float getBeatWidth()
+	{
+		return mBounds.width() * (mTotalSize / mResolution);
 	}
 
 	@Override
@@ -227,8 +235,7 @@ class PatternView extends View
 	protected void onTap(MotionEvent event)
 	{
 		Log.d("BSTicker", "On tap occured");
-
-		int beat = (int)event.getX() / (getWidth() / mSize);
+		int beat = (int)(event.getX() / getBeatWidth());
 		Log.d("BSTicker", "Beat to select/unselect: " + beat);
 
 		setBeat(beat, !getBeat(beat));
