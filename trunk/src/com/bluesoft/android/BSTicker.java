@@ -373,6 +373,7 @@ public class BSTicker extends FragmentActivity
 			// update existing pattern
 			dialog.mPatternView.setSize(dialog.mSize);
 			dialog.mPatternView.setResolution(dialog.mResolution + 1);
+			dialog.mPatternView.invalidate();
 		}
 	}
 
@@ -734,7 +735,7 @@ public class BSTicker extends FragmentActivity
 			//parser.nextTag();
 			readXml(parser);
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			;
 		} finally {
 			try {
 				if (fis != null)
