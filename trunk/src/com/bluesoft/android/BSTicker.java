@@ -314,9 +314,22 @@ public class BSTicker extends FragmentActivity
 				DialogFragment dialog = new PatternDialogFragment(4, 4, null);
 				dialog.show(getSupportFragmentManager(), "PatternDialogFragment");
 				return true;
-			case R.id.help:
-				//showHelp();
+
+			case R.id.load:
+				DialogFragment dialogLoad = new DialogLoad();
+				dialogLoad.show(getSupportFragmentManager(), "DialogLoad");
 				return true;
+
+			case R.id.save:
+				DialogFragment dialogSave= new DialogSave();
+				dialogSave.show(getSupportFragmentManager(), "DialogSave");
+				return true;
+
+			case R.id.help:
+				DialogFragment dialogHelp = new DialogHelp();
+				dialogHelp.show(getSupportFragmentManager(), "DialogHelp");
+				return true;
+
 			default:
 				return super.onOptionsItemSelected(item);
 		}
@@ -377,6 +390,20 @@ public class BSTicker extends FragmentActivity
 		}
 	}
 
+    public void onFinishDialogSave(DialogSave dialog)
+	{
+		//Toast.makeText(this, "Hi, " + inputText, Toast.LENGTH_SHORT).show();
+		Log.d("BSTicker", "Dialog save successfully closed with preset name " + dialog.mPresetName);
+		save(dialog.mPresetName + ".xml");
+	}
+
+    public void onFinishDialogLoad(DialogLoad dialog)
+	{
+		//Toast.makeText(this, "Hi, " + inputText, Toast.LENGTH_SHORT).show();
+		Log.d("BSTicker", "Dialog load successfully closed with preset name " + dialog.mPresetName);
+		//save(dialog.mPresetName + ".xml");
+	}
+
 	public class PatternDialogFragment extends DialogFragment
 	{
 		//PatternView mPattern;
@@ -402,9 +429,22 @@ public class BSTicker extends FragmentActivity
 		@Override
 		public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
 		{
+			String[] sizeItems = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
+				"11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
+				"21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32" };
+
 			View v = inflater.inflate(R.layout.dialog_pattern, container, false);
-			final EditText ctrlSize = (EditText)v.findViewById(R.id.size);
-			ctrlSize.setText(Integer.toString(mSize));
+
+			// Size Spinner
+			final Spinner ctrlSize = (Spinner)v.findViewById(R.id.size);
+			//ctrlSize.setText(Integer.toString(mSize));
+			ArrayAdapter<String> sizeAdapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_spinner_item, sizeItems);
+			// Specify the layout to use when the list of choices appears
+			sizeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+			ctrlSize.setAdapter(sizeAdapter);
+			ctrlSize.setSelection(mSize - 1);
+
+			// Resolution Spinner
 			final Spinner spinner = (Spinner)v.findViewById(R.id.resolution);
 			// Create an ArrayAdapter using the string array and a default spinner layout
 			ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getActivity(), R.array.pattern_resolutions, android.R.layout.simple_spinner_item);
@@ -420,39 +460,14 @@ public class BSTicker extends FragmentActivity
 			{
 				public void onClick(View v)
 				{
-   					//((FragmentDialog)getActivity()).showDialog();
-					if (ctrlSize.getText().toString().length() > 0 )
-					{
-						int size = 0;
-						try {
-							size = Integer.parseInt(ctrlSize.getText().toString());
-							Log.d("BSTicker", "size is " + size);
-						} catch (NumberFormatException e) {
-							Log.d("BSTicker", "cannot parse int size");
-							size = 0;
-						}
-
-						// if all values are ok
-						if (size > 0 && size < PatternView.MAX_SIZE)
-						{
-							// update pattern and exit
-							mSize = size;
-							mResolution = spinner.getSelectedItemPosition();
-							BSTicker activity = (BSTicker) getActivity();
-							activity.onFinishEditPatternDialog(PatternDialogFragment.this);
-							PatternDialogFragment.this.getDialog().dismiss();
-						}
-						else
-						{
-							Toast.makeText(getActivity(), "Size must number > 0", Toast.LENGTH_LONG).show();
-						}
-					}
-					else
-					{
-						Toast.makeText(getActivity(), "Size must set", Toast.LENGTH_LONG).show();
-
-					}
+					// update pattern and exit
+					mSize = ctrlSize.getSelectedItemPosition() + 1;
+					mResolution = spinner.getSelectedItemPosition();
+					BSTicker activity = (BSTicker) getActivity();
+					activity.onFinishEditPatternDialog(PatternDialogFragment.this);
+					PatternDialogFragment.this.getDialog().dismiss();
 				}
+				//Toast.makeText(getActivity(), "Size must number > 0", Toast.LENGTH_LONG).show();
 			});
 
 	        // Watch for cancel button clicks.
@@ -673,10 +688,14 @@ public class BSTicker extends FragmentActivity
 	}
 	*/
 
+
 	public void save()
 	{
-		String filePath = fileName;
+		save(fileName);
+	}
 
+	public void save(String filePath)
+	{
 		/*
 		if (isExternalStorageAvailable)
 		{
@@ -690,7 +709,7 @@ public class BSTicker extends FragmentActivity
 
 		try {
 
-			FileOutputStream fos = openFileOutput(fileName, Context.MODE_PRIVATE);
+			FileOutputStream fos = openFileOutput(filePath, Context.MODE_PRIVATE);
 			XmlSerializer serializer = Xml.newSerializer();
 			serializer.setOutput(fos, "UTF-8");
 			serializer.startDocument(null, Boolean.valueOf(true));
@@ -723,12 +742,13 @@ public class BSTicker extends FragmentActivity
 		// check if file exists
 		String filePath = fileName;
 
+
 		Log.d("BSTicker", "Loading current from " + filePath); 
 
 		FileInputStream fis = null;
 		//fis = openFileInput(fileName);
 		try {
-			fis = openFileInput(fileName);
+			fis = openFileInput(filePath);
 			XmlPullParser parser = Xml.newPullParser();
 			parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
 			parser.setInput(fis, null);

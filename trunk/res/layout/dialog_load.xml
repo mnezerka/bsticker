@@ -9,39 +9,14 @@
 	android:layout_height="fill_parent">
 
 	<TextView
-		android:id="@+id/text_size"
+		android:id="@+id/presetstitle"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
-		android:text="Size" />
+		android:text="@string/presets" />
 
-	<!--
-	<EditText
-		android:id="@+id/size"
-		android:inputType="number"
-		android:layout_width="fill_parent"
-		android:layout_height="wrap_content"
-		android:layout_marginBottom="10dp"
-		android:hint="@string/hint_size" /> -->
-
-	<Spinner
-		android:id="@+id/size"
-		android:layout_width="fill_parent"
-		android:layout_height="wrap_content"
-		android:hint="@string/hint_size"
-		android:drawSelectorOnTop="true"
-		android:layout_marginBottom="10dp" />
-
-	<TextView
-		android:id="@+id/textResolution"
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:text="Resolution" />
-
-	<Spinner
-		android:id="@+id/resolution"
-		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		android:hint="@string/hint_resolution"
+	<ListView android:id="@+id/presets"
+        android:layout_width="fill_parent" 
+        android:layout_height="wrap_content"
 		android:layout_marginBottom="4dp" />
 
 	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"

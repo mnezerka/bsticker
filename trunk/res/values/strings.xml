@@ -7,8 +7,12 @@
     <string name="taptempo">Tap Tempo</string>
     <string name="add_pattern">Add</string>
     <string name="help">Help</string>
+    <string name="load">Load</string>
+    <string name="save">Save</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
+    <string name="back">Back</string>
+    <string name="presets">Presets</string>
 
     <string name="pattern_set_size">Size</string>
     <string name="pattern_set_resolution">Resolution</string>
@@ -16,6 +20,9 @@
 
     <string name="hint_size">Beats in pattern</string>
     <string name="hint_resolution">Beats duration</string>
+    <string name="hint_preset">Preset</string>
+
+    <string name="dialog_help">Advanced metronome for Android. Author: michal.nezerka@gmail.com.</string>
 
 	<string-array name="pattern_resolutions">
         <item>1 whole</item>

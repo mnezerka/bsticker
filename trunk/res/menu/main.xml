@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-	<item
-		android:id="@+id/add_pattern"
-		android:title="@string/add_pattern" />
-	<item android:id="@+id/help"
-		android:title="@string/help" />
+	<item android:id="@+id/add_pattern" android:title="@string/add_pattern" />
+	<item android:id="@+id/save" android:title="@string/save" />
+	<item android:id="@+id/load" android:title="@string/load" />
+	<item android:id="@+id/help" android:title="@string/help" />
 </menu>
