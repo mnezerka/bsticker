@@ -58,7 +58,7 @@
 			android:text="   +   "
 			android:layout_weight="0" />
 		<Button
-			android:id="@+id/tap"
+			android:id="@+id/taptempo"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:text="@string/taptempo"

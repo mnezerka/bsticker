@@ -1,0 +1,6 @@
+<h3>BSTicker</h3>
+
+Version 1.0<br>
+Copyright 2013<br>
+<b>michal.nezerka@gmail.com</b><br><br>
+blue.pavoucek.cz
