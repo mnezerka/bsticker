@@ -24,21 +24,12 @@
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content">
 		<Button
-			android:id="@+id/dialogButtonOK"
-			android:layout_width="120px"
+			android:id="@+id/dialogButtonBack"
+			android:layout_width="fill_parent"
 			android:layout_height="wrap_content"
-			android:text=" OK "
+			android:text="$string/back"
 			android:layout_marginTop="5dp"
-			android:layout_marginRight="5dp"
-			/>
-		<Button
-			android:id="@+id/dialogButtonCancel"
-			android:layout_width="120px"
-			android:layout_height="wrap_content"
-			android:text=" Cancel "
-			android:layout_marginTop="5dp"
-			android:layout_marginRight="5dp"
-			/>
+			android:layout_marginRight="5dp" />
 	</LinearLayout>
 
 </LinearLayout>

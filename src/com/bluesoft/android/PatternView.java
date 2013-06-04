@@ -29,6 +29,7 @@ class PatternView extends View
 	private Paint mBeatPaint;
 	private Paint mBeatActivePaint;
 	private Paint mTickPaint;
+	private Paint mNotePaint;
 	private PatternContextMenuInfo mPatternContextMenuInfo;
 
 	private int mTempo = DEFAULT_TEMPO;
@@ -172,6 +173,11 @@ class PatternView extends View
 		mTickPaint.setStyle(Paint.Style.FILL);
 		//mTickPaint.setColor(Color.WHITE);
 		mTickPaint.setColor(Color.BLUE);
+
+		mNotePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+		mNotePaint.setStyle(Paint.Style.STROKE);
+		mNotePaint.setStrokeWidth(2);
+		mNotePaint.setColor(0xFF444444);
 	}
 
 	/*
@@ -187,6 +193,10 @@ class PatternView extends View
 	protected void onDraw(Canvas canvas)
 	{
 		super.onDraw(canvas);
+
+		//Resources res = getResources();
+		//Bitmap mBitmap = Bitmap.createScaledBitmap(Bitmap src, int dstWidth, int dstHeight, boolean filter);
+
 
 		float beatWidth = getBeatWidth();
 		RectF beatRect = new RectF(1, 1, beatWidth - 2, mBounds.height() - 2); 
@@ -208,6 +218,24 @@ class PatternView extends View
 				canvas.drawRoundRect(beatRect, 5, 5, mTickPaint);
 				//canvas.drawRoundRect(beatRect, 5, 5, mStrokePaint);
 			}
+
+			// draw note
+			RectF ovalRect = new RectF();
+			float unit = beatRect.height() / 7;
+			ovalRect.set(
+				beatRect.centerX() - unit,
+				beatRect.bottom - unit * 2,
+				beatRect.centerX() + unit,
+				beatRect.bottom - unit);
+			mNotePaint.setStyle(Paint.Style.STROKE);
+			canvas.drawOval(ovalRect, mNotePaint);	
+
+			mNotePaint.setStyle(Paint.Style.FILL);
+			canvas.drawOval(ovalRect, mNotePaint);	
+
+			mNotePaint.setStyle(Paint.Style.STROKE);
+			canvas.drawLine(beatRect.centerX() + unit, beatRect.top + unit, beatRect.centerX() + unit, ovalRect.centerY(), mNotePaint);
+
 			beatRect.offset(beatWidth, 0);
 		}
 	}

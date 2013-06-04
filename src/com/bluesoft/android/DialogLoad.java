@@ -1,5 +1,6 @@
 package com.bluesoft.android;
 
+import java.util.ArrayList;
 import android.app.Dialog;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -9,10 +10,13 @@ import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView; 
+import android.widget.Toast;
 
 public class DialogLoad extends DialogFragment
 {
@@ -22,7 +26,7 @@ public class DialogLoad extends DialogFragment
 	{
 		super();
 
-		mPresetName = "Preset name";
+		mPresetName = "";
 	}
 
 	@Override
@@ -38,28 +42,26 @@ public class DialogLoad extends DialogFragment
 
 		ListView filesCtrl = (ListView)v.findViewById(R.id.presets);
 
-		String[] savedFiles = getActivity().getApplicationContext().fileList();
-		ArrayAdapter<String> adapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_list_item_1, savedFiles);
-		filesCtrl.setAdapter(adapter);
-
-		// watch for button clicks.
-		final Button btnOk = (Button)v.findViewById(R.id.dialogButtonOK);
-		btnOk.setOnClickListener(new OnClickListener()
+		filesCtrl.setClickable(true);
+		filesCtrl.setOnItemClickListener(new AdapterView.OnItemClickListener()
 		{
-			public void onClick(View v)
+			@Override
+			public void onItemClick(AdapterView<?> parent, View view, int position, long id)
 			{
-				// update pattern and exit
-				//mPresetName = ctrlPresetName.getText().toString();
+				mPresetName = ((TextView)view).getText().toString();
 				BSTicker activity = (BSTicker) getActivity();
 				activity.onFinishDialogLoad(DialogLoad.this);
 				DialogLoad.this.getDialog().dismiss();
 			}
-			//Toast.makeText(getActivity(), "Size must number > 0", Toast.LENGTH_LONG).show();
 		});
 
-		// Watch for cancel button clicks.
-		final Button btnCancel = (Button)v.findViewById(R.id.dialogButtonCancel);
-		btnCancel.setOnClickListener(new OnClickListener() { public void onClick(View v) { DialogLoad.this.getDialog().cancel(); } });
+		ArrayList<String> presetFiles = ((BSTicker)getActivity()).getPresetNames();
+		ArrayAdapter<String> adapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_list_item_1, presetFiles);
+		filesCtrl.setAdapter(adapter);
+
+		// watch for button clicks.
+		final Button btnBack = (Button)v.findViewById(R.id.dialogButtonBack);
+		btnBack.setOnClickListener(new OnClickListener() { public void onClick(View v) { DialogLoad.this.getDialog().cancel(); } });
 
 		return v;
 	}

@@ -61,7 +61,7 @@ public class BSTicker extends FragmentActivity
 			void onFinishEditDialog(PatternView pattern);
 	}
 	*/
-	private static final int maxTempo = 200;
+	private static final int MAX_TEMPO = 200;
 	private static final String KEY_TEMPO = "METRONOME_TEMPO";
 	private static final String PREFS = "bsticker.prefs";
 	private static final int DEFAULT_TEMPO = 60;
@@ -69,6 +69,9 @@ public class BSTicker extends FragmentActivity
 	private static final int TIME_ATOM = 50;
 	private static final int AUDIO_BUFFER_SIZE = 4096;
 	private static final String fileName = "current.xml";
+	private static final String PRESET_PREFIX = "preset_";
+	private static final String PRESET_POSTFIX = ".xml";
+	private static final String BPM = " bpm";
 
 	private ArrayList<PatternView> mPatterns = new ArrayList<PatternView>();
 	private Timer mTimer = new Timer();
@@ -78,6 +81,7 @@ public class BSTicker extends FragmentActivity
 	private int mTotalLength = 0;
 	private final Handler mHandler = new Handler();
 	private int mTick;
+	private long mLastTapTempoClick; 
 	private TimerThread mTimerThread;
 	private AudioTrack mAudioTrack = null;
 	private byte[] mAudioTickBuffer = null; 
@@ -90,6 +94,7 @@ public class BSTicker extends FragmentActivity
 	TextView tempoVal;
 	Button mPlus;
 	Button mMinus;
+	Button mTapTempo;
 	PowerManager.WakeLock mWakeLock;
 	ArrayList<PatternView> patternViews;
 	
@@ -98,9 +103,9 @@ public class BSTicker extends FragmentActivity
 	private void restart()
 	{
 		mSeekBar.setProgress(mTempo);
-		tempoVal.setText("" + mTempo);
+		tempoVal.setText("" + mTempo + BPM);
 		mMinus.setClickable(mTempo > 0);
-		mPlus.setClickable(mTempo < maxTempo);
+		mPlus.setClickable(mTempo < MAX_TEMPO);
 	}
 
 	@Override
@@ -118,12 +123,13 @@ public class BSTicker extends FragmentActivity
 		mStartStopButton = (ToggleButton)findViewById(R.id.startstop);
 	       
 		mSeekBar = (SeekBar) findViewById(R.id.tempo);
-		mSeekBar.setMax(maxTempo + 1);
+		mSeekBar.setMax(MAX_TEMPO + 1);
 		tempoVal = (TextView) findViewById(R.id.tempoval);
 		mMinus = (Button) findViewById(R.id.minus);
 		mPlus = (Button) findViewById(R.id.plus);
-		//mPeriodLabel = (TextView) findViewById(R.id.period);
-        
+		mTapTempo = (Button) findViewById(R.id.taptempo);
+		mLastTapTempoClick = 0;
+
 		SharedPreferences settings = getSharedPreferences(PREFS, 0);
 		mTempo = settings.getInt(KEY_TEMPO, DEFAULT_TEMPO);
 
@@ -134,8 +140,11 @@ public class BSTicker extends FragmentActivity
 				@Override
 				public void onClick(View v)
 				{
-					if (mTempo > 1) --mTempo;
-					restart();
+					if (mTempo > 1) 
+					{
+						--mTempo;
+						restart();
+					}
 				}
 			});
 
@@ -144,19 +153,43 @@ public class BSTicker extends FragmentActivity
 				@Override
 				public void onClick(View v)
 				{
-					if (mTempo < maxTempo) ++mTempo;
-					restart();
+					if (mTempo < MAX_TEMPO)
+					{
+						++mTempo;
+						restart();
+					}
 				}
 			});
         
-      
+		mTapTempo.setOnClickListener(new Button.OnClickListener()
+			{
+				@Override
+				public void onClick(View v)
+				{
+					long timeClick = new Date().getTime(); 
+					long diff = timeClick - mLastTapTempoClick;
+					if (diff > 0)
+					{
+						long guessBpm = 60000 / diff;
+						Log.d("BSTicker", "Tap click at " + timeClick + " last click at " + mLastTapTempoClick + " bpm guess is " + guessBpm);
+						if (guessBpm > 0 && guessBpm < MAX_TEMPO)
+						{
+							mTempo = (int)guessBpm;	
+							Log.d("BSTicker", "Setting new tempo to " + guessBpm);
+							restart();
+						}
+					}
+					mLastTapTempoClick = timeClick;
+				}
+			});
+     
 		mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener()
         		{
 				@Override
 				public void onProgressChanged(SeekBar seekBar, int progress, boolean fromTouch)
 				{
 					mTempo = progress;
-					tempoVal.setText("" + mTempo);
+					tempoVal.setText("" + mTempo + BPM);
 						// TODO Auto-generated method stub
 						
 				}
@@ -326,8 +359,9 @@ public class BSTicker extends FragmentActivity
 				return true;
 
 			case R.id.help:
-				DialogFragment dialogHelp = new DialogHelp();
-				dialogHelp.show(getSupportFragmentManager(), "DialogHelp");
+				DialogAbout about = new DialogAbout(this);
+				about.setTitle("about this app");
+				about.show();
 				return true;
 
 			default:
@@ -394,14 +428,14 @@ public class BSTicker extends FragmentActivity
 	{
 		//Toast.makeText(this, "Hi, " + inputText, Toast.LENGTH_SHORT).show();
 		Log.d("BSTicker", "Dialog save successfully closed with preset name " + dialog.mPresetName);
-		save(dialog.mPresetName + ".xml");
+		save(PRESET_PREFIX + dialog.mPresetName + PRESET_POSTFIX);
 	}
 
     public void onFinishDialogLoad(DialogLoad dialog)
 	{
 		//Toast.makeText(this, "Hi, " + inputText, Toast.LENGTH_SHORT).show();
 		Log.d("BSTicker", "Dialog load successfully closed with preset name " + dialog.mPresetName);
-		//save(dialog.mPresetName + ".xml");
+		load(PRESET_PREFIX + dialog.mPresetName + PRESET_POSTFIX);
 	}
 
 	public class PatternDialogFragment extends DialogFragment
@@ -739,10 +773,11 @@ public class BSTicker extends FragmentActivity
 
 	public void load()
 	{
-		// check if file exists
-		String filePath = fileName;
+		load(fileName);
+	}
 
-
+	public void load(String filePath)
+	{
 		Log.d("BSTicker", "Loading current from " + filePath); 
 
 		FileInputStream fis = null;
@@ -867,5 +902,22 @@ public class BSTicker extends FragmentActivity
 					break;
 			}
 		}
+	}
+
+	public ArrayList<String> getPresetNames()
+	{
+		String[] savedFiles = getApplicationContext().fileList();
+		ArrayList<String> presetFiles = new ArrayList<String>();
+		for (int i = 0; i < savedFiles.length; i++)
+			if (savedFiles[i].startsWith(PRESET_PREFIX) && savedFiles[i].endsWith(PRESET_POSTFIX))
+			{
+				int postfixPos = savedFiles[i].lastIndexOf(PRESET_POSTFIX);
+				if (postfixPos <= 0)
+					continue;
+				String presetName = savedFiles[i].substring(0, postfixPos);
+				presetName = presetName.substring(PRESET_PREFIX.length());
+				presetFiles.add(presetName);
+			}
+		return presetFiles;
 	}
 }
