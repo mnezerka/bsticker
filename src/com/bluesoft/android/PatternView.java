@@ -87,6 +87,7 @@ class PatternView extends View
 
 	public void setTotalSize(float size)
 	{
+		Log.d("BSTicker", "SetTotalSize to " + size);
 		mTotalSize = size;
 	}
 
@@ -224,7 +225,7 @@ class PatternView extends View
 
 	protected float getBeatWidth()
 	{
-		return mBounds.width() * (mTotalSize / mResolution);
+		return mBounds.width() / (mTotalSize * getResolution());
 	}
 
 	@Override

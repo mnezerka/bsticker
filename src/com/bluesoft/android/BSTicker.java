@@ -421,6 +421,7 @@ public class BSTicker extends FragmentActivity
 			dialog.mPatternView.setSize(dialog.mSize);
 			dialog.mPatternView.setResolution(dialog.mResolution + 1);
 			dialog.mPatternView.invalidate();
+			afterSongContentModification();
 		}
 	}
 
@@ -675,15 +676,22 @@ public class BSTicker extends FragmentActivity
 		float totalSize = 0;
 		for (int i = 0; i < mPatterns.size(); i++)
 		{
-			float patternSize = mPatterns.get(i).getSize() / mPatterns.get(i).getResolution();
+			float patternSize = (float)mPatterns.get(i).getSize() / mPatterns.get(i).getResolution();
+
+			Log.d("BSTicker", "pattern " + i + " size is " + patternSize);
 
 			if (patternSize > totalSize)
 				totalSize = patternSize;
 		}
 
+		Log.d("BSTicker", "global total size is " + totalSize);
+
 		// set total size for all patterns
 		for (int i = 0; i < mPatterns.size(); i++)
+		{
 			mPatterns.get(i).setTotalSize(totalSize);	
+			mPatterns.get(i).invalidate();
+		}
 	}
 
 	int getResolution()
