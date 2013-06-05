@@ -358,7 +358,7 @@ public class BSTicker extends FragmentActivity
 				dialogSave.show(getSupportFragmentManager(), "DialogSave");
 				return true;
 
-			case R.id.help:
+			case R.id.about:
 				DialogAbout about = new DialogAbout(this);
 				about.setTitle("about this app");
 				about.show();
