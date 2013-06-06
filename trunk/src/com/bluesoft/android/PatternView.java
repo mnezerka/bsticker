@@ -216,7 +216,7 @@ class PatternView extends View
 			String str = Integer.toString(getResolution());
 			Rect textBounds = new Rect();
 			mTextPaint.getTextBounds(str, 0, str.length(), textBounds);
-			Log.d("BSTicker", "text bounds: " + textBounds);
+			//Log.d("BSTicker", "text bounds: " + textBounds);
 			canvas.drawText(str, beatRect.centerX() - textBounds.width() / 2, beatRect.centerY() + textBounds.height() / 2, mTextPaint);
 
 			beatRect.offset(beatWidth, 0);

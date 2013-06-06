@@ -519,11 +519,14 @@ public class BSTicker extends FragmentActivity
 		private BSTicker mTicker;
 		private long mTimeStart; 
 		private long mTimeExpected; 
+		private long mNanoTimeStart; 
+		private long mNanoTimeExpected; 
+
 
 		@Override public void run()
 		{
-			mTimeStart = new Date().getTime(); 
-			mTimeExpected = mTimeStart; 
+			mNanoTimeStart = System.nanoTime();
+			mNanoTimeExpected = mNanoTimeStart; 
 
 			while(running)
 			{
@@ -550,10 +553,10 @@ public class BSTicker extends FragmentActivity
 				if (pv.getBeat(mCurrentPos) && mAudioTickBufferSize > 0)
 				{
 					Log.d("BSTicker", "Playing beat: cPos:" + mCurrentPos);
-					mAudioTrack.play();
-					int bytesWritten = mAudioTrack.write(mAudioTickBuffer, 0, mAudioTickBufferSize);
-					Log.d("BSTicker", "Written " + bytesWritten + " bytes");
-					mAudioTrack.stop();
+					//tmp mAudioTrack.play();
+					//tmp int bytesWritten = mAudioTrack.write(mAudioTickBuffer, 0, mAudioTickBufferSize);
+					//tmp Log.d("BSTicker", "Written " + bytesWritten + " bytes");
+					//tmp mAudioTrack.stop();
 				}
 
 				mHandler.post(new Runnable() {
@@ -561,22 +564,22 @@ public class BSTicker extends FragmentActivity
 						updateOnBeat();
 					}
 				});
-	
-				// wait for one beat 
-				int sleepLen = pv.getTimeBeat(mTempo);
 
-				long currentTime = new Date().getTime();
-				long timeDiff = currentTime - mTimeExpected;
-				Log.d("BSTicker", "Time diff: " + timeDiff); 
-				mTimeExpected += sleepLen;
-				sleepLen -= timeDiff;	
-				Log.d("BSTicker", "New sleepLen: " + sleepLen); 
+				// wait for one beat 
+				int nanoTimeBeat = pv.getTimeBeat(mTempo) * 1000000;
+
+				long currentNanoTime = System.nanoTime();
+				long nanoTimeDiff = currentNanoTime - mNanoTimeExpected;
+				Log.d("BSTicker", "NanoTime diff: " + nanoTimeDiff / 1000000); 
+				mNanoTimeExpected += nanoTimeBeat;
+				nanoTimeBeat -= nanoTimeDiff;	
+
+				Log.d("BSTicker", "New nanoTimeBeat: " + nanoTimeBeat); 
 
 				// TODO:: do time corrections caused by execution
-				try { sleep(sleepLen); } catch (InterruptedException e) { e.printStackTrace(); }
+				try { Thread.sleep(nanoTimeBeat / 1000000); } catch (InterruptedException e) { e.printStackTrace(); }
 
 				mCurrentPos++;
-
 			}
 		}
 
